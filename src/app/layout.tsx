@@ -11,7 +11,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex flex-col h-screen">
 
-        <Navbar/>
+        <Navbar />
 
         <div className="flex flex-1">
           <Sidebar />
