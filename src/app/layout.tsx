@@ -1,6 +1,6 @@
 import "./globals.css";
-import Sidebar from "@/component/Sidebar";
-import Navbar from "@/component/Navbar";
+import Sidebar from "./Components/SideBar";
+import Navbar from "./Components/NavBar";
 
 export default function RootLayout({
   children,
@@ -11,7 +11,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex flex-col h-screen">
 
-        <Navbar />
+        <div>
+          <Navbar />
+        </div>
 
         <div className="flex flex-1">
           <Sidebar />

@@ -1,5 +1,5 @@
 
-import RecipeList from "./recipeManagement/RecipeList";
+import RecipeList from "./Pages/Recipe Management/Home/RecipeList";
 
 
 export default function Home() {
