@@ -1,3 +1,5 @@
+"use client";
+import React, { useState } from "react";
 import "./globals.css";
 import Sidebar from "./Components/SideBar";
 import Navbar from "./Components/NavBar";
@@ -7,30 +9,26 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
     <html lang="en">
       <body className="flex flex-col h-screen">
 
         <div>
-          <Navbar />
+          <Navbar setIsOpen={setIsSidebarOpen} />
         </div>
 
         <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-4">
+          <Sidebar isOpen={isSidebarOpen} />
+          
+          <main className={`flex-1 p-4 transition-all duration-300 ${isSidebarOpen ? "pl-16" : "pl-4"}`}>
             {children}
           </main>
+
         </div>
 
       </body>
     </html>
   );
 }
-
-
-
-
-
-
-
-
