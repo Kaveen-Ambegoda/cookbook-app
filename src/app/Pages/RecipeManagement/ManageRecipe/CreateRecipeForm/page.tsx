@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 type RecipeFormData = {
   title: string;
@@ -15,6 +16,7 @@ type RecipeFormData = {
   protein: string;
   fat: string;
   carbs: string;
+  imageUrl: string; // ✅ Added
 };
 
 const steps = ["Basic Info", "Details", "Nutrition & Image"];
@@ -25,29 +27,49 @@ const UpdateRecipePage = () => {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<RecipeFormData>();
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, steps.length - 1));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
 
-  const onSubmit = (data: RecipeFormData) => {
+  const onSubmit = async (data: RecipeFormData) => {
     console.log("Form submitted:", data);
+
+    try {
+      const response = await axios.post('https://localhost:7205/api/Recipe/addRecipe', data, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log("Recipe added successfully:", response.data);
+      alert("Recipe added successfully!");
+      reset();
+      setStep(0);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error:", error.response?.data || error.message);
+        alert("Failed to add recipe: " + (error.response?.data?.message || error.message));
+      } else {
+        console.error("Unexpected error:", error);
+        alert("An unexpected error occurred.");
+      }
+    }
   };
 
   return (
-    <div className="min-h-screen relative pl-16"> {/* Added padding-left to avoid Sidebar overlap */}
+    <div className="min-h-screen relative pl-16">
       <div
-        className="absolute inset-y-0 left-16 right-0 bg-cover bg-center z-0" /* Adjusted to start after Sidebar */
+        className="absolute inset-y-0 left-16 right-0 bg-cover bg-center z-0"
         style={{ backgroundImage: "url('/image/bg.png')" }}
       />
-
       <div className="relative z-10 max-w-4xl mx-auto pt-36 pb-12 px-6">
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8">
           <h1 className="text-3xl font-bold text-center text-green-800 mb-6">
             Update Your Recipe
           </h1>
 
-          {/* Step Indicators */}
           <div className="flex justify-between mb-8">
             {steps.map((label, index) => (
               <div
@@ -82,7 +104,6 @@ const UpdateRecipePage = () => {
                       <p className="text-red-500 text-sm">{errors.title.message}</p>
                     )}
                   </div>
-
                   <div>
                     <label className="block font-medium">Category</label>
                     <select
@@ -98,7 +119,6 @@ const UpdateRecipePage = () => {
                       <p className="text-red-500 text-sm">{errors.category.message}</p>
                     )}
                   </div>
-
                   <div>
                     <label className="block font-medium">Cooking Time</label>
                     <input
@@ -109,7 +129,6 @@ const UpdateRecipePage = () => {
                       <p className="text-red-500 text-sm">{errors.cookingTime.message}</p>
                     )}
                   </div>
-
                   <div>
                     <label className="block font-medium">Portion</label>
                     <input
@@ -178,19 +197,20 @@ const UpdateRecipePage = () => {
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
-
                   <div className="col-span-2">
-                    <label className="block font-medium">Upload Image</label>
+                    <label className="block font-medium">Image URL</label>
                     <input
-                      type="file"
-                      className="w-full text-sm border rounded px-2 py-1"
+                      {...register("imageUrl", { required: "Image URL is required" })}
+                      className="w-full border rounded px-3 py-2"
                     />
+                    {errors.imageUrl && (
+                      <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>
+                    )}
                   </div>
                 </div>
               )}
             </motion.div>
 
-            {/* Navigation Buttons */}
             <div className="flex justify-between pt-4">
               <button
                 type="button"
@@ -201,7 +221,6 @@ const UpdateRecipePage = () => {
               >
                 Back
               </button>
-
               {step < steps.length - 1 ? (
                 <button
                   type="button"
