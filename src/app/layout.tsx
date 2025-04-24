@@ -2,6 +2,7 @@ import "./globals.css";
 import Sidebar from "./Components/SideBar";
 import Navbar from "./Components/NavBar";
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -17,6 +18,7 @@ export default function RootLayout({
 
         <div className="flex flex-1">
           <Sidebar />
+          
           <main className="flex-1 p-4">
             {children}
           </main>
