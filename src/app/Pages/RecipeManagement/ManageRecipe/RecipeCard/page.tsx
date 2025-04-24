@@ -15,7 +15,7 @@ export default function RecipeCard({ recipe, onUpdate, onDelete }: RecipeCardPro
   return (
     <div className="border p-4 rounded-xl shadow hover:shadow-md transition bg-white">
       <img
-        src={recipe.image}
+        src="/image/cake.png"  // Replaced image with cake.jpg
         alt={recipe.title}
         className="rounded-full w-24 h-24 mx-auto object-cover"
       />

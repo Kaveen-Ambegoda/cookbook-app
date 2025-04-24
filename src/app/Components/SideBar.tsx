@@ -3,9 +3,14 @@
 import { FaHome, FaUtensils, FaClipboardList, FaHeart, FaCog, FaSignOutAlt } from "react-icons/fa";
 import Link from 'next/link';
 
-const Sidebar = () => {
+interface SidebarProps {
+  isOpen: boolean;
+}
+
+const Sidebar = ({ isOpen }: SidebarProps) => {
   return (
-    <div className="bg-green-800 text-white w-16 fixed top-0 left-0 h-full flex flex-col items-center py-20 space-y-12">
+    <div className={`bg-green-800 text-white fixed top-0 left-0 h-full flex flex-col items-center py-20 space-y-12 transition-all duration-300 overflow-hidden
+      ${isOpen ? "w-16" : "w-0"}`}>
       
       {/* Home Icon */}
       <Link href="/">
@@ -13,7 +18,7 @@ const Sidebar = () => {
       </Link>
 
       {/* Test Page Icon (Manage Recipe for now) */}
-      <Link href="\Pages\RecipeManagement\ManageRecipe\ManageRecipe"> {/* Updated to navigate to ManageRecipe page */}
+      <Link href="/Pages/RecipeManagement/ManageRecipe/ManageRecipe"> {/* Updated to navigate to ManageRecipe page */}
         <FaUtensils size={24} className="cursor-pointer hover:text-yellow-400 transition-all duration-300" />
       </Link>
 
