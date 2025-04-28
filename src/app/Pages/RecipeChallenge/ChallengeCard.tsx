@@ -1,6 +1,4 @@
 import React from "react";
-
-
 import { SiPocket } from "react-icons/si";
 import Challenge from "./Challenge";
 
@@ -43,7 +41,7 @@ export const challenges = [
 
 const ChallengeCard = () => {
   return (
-    <div className="grid grid-cols-1  gap-8 p-4">
+    <div className="grid grid-cols-1 gap-8 p-4">
       {challenges.map((challenge) => (
         <Challenge key={challenge.id} challenge={challenge} />
       ))}
@@ -52,3 +50,8 @@ const ChallengeCard = () => {
 };                            
 
 export default ChallengeCard;
+
+
+
+
+

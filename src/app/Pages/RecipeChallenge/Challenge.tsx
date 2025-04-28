@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaCalendarAlt, FaTrophy, FaUsers, FaShareAlt } from "react-icons/fa";
+import { challenges } from "./ChallengeCard";
 
 type ChallengeProps = {
   challenge: {
@@ -80,11 +81,11 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
                   </button>
                   
                   <Link
-                    href="/challenge/join" // Update this to match your route
+                    href={`/Pages/RecipeChallenge/JoinChallengePage/${challenge.title}`}
                     className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium w-full sm:w-auto text-center shadow-md hover:shadow-lg"
-                    >
+                  >
                     Join Challenge
-                    </Link>
+                  </Link>
                 </div>
               </div>
             </div>

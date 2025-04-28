@@ -5,12 +5,12 @@ import React from "react";
 
 type JoinFormProps = {
   challenge: {
-    id: number;
-    title: string;
+   
     name: string;
     email: string;
   };
 };
+
 
 const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
   const [selectedCategory, setSelectedCategory] = React.useState<string>("");
@@ -36,7 +36,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
           id="name"
           name="name"
           placeholder="Sandali Sathsarani"
-          defaultValue={challenge.name}
+          
           required
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         />
