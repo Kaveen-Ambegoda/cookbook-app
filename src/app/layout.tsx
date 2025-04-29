@@ -19,6 +19,7 @@ export default function RootLayout({
         <Toaster position="top-right" reverseOrder={false} />
 
         <div>
+
           <Navbar setIsOpen={setIsSidebarOpen} />
         </div>
 
@@ -26,6 +27,7 @@ export default function RootLayout({
           <Sidebar isOpen={isSidebarOpen} />
           
           <main className={`flex-1 p-4 transition-all duration-300 ${isSidebarOpen ? "pl-16" : "pl-4"}`}>
+
             {children}
           </main>
 
