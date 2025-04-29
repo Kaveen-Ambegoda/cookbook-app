@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import "./globals.css";
+import { Toaster } from "react-hot-toast"; 
 import Sidebar from "./Components/SideBar";
 import Navbar from "./Components/NavBar";
 
@@ -14,6 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex flex-col h-screen">
+      
+        <Toaster position="top-right" reverseOrder={false} />
 
         <div>
           <Navbar setIsOpen={setIsSidebarOpen} />
