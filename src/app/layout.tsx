@@ -12,12 +12,12 @@ export default function RootLayout({
       <body className="flex flex-col h-screen">
 
         <div>
-          <Navbar />
+          <Navbar/>
         </div>
 
         <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1 p-4">
+          <main className="flex-1 ">
             {children}
           </main>
         </div>
