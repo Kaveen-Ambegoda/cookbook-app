@@ -67,7 +67,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
   // Default navbar (for other pages)
   return (
-    <nav className="bg-yellow-400 px-6 py-3 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-10">
+    <nav className="bg-yellow-400 px-6 py-3 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50">
       {/* Left - Logo and Title */}
       <div className="flex items-center space-x-3">
         <button className="text-gray-800 text-xl" onClick={() => setIsOpen((prev) => !prev)}>
