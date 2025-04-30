@@ -1,3 +1,4 @@
+
 'use client'; // This ensures it's a client component
 
 import React, { useState } from "react";
@@ -102,4 +103,5 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
 };
 
 export default Sidebar;
+
 
