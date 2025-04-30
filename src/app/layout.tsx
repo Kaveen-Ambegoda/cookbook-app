@@ -19,7 +19,7 @@ export default function RootLayout({
         <Toaster position="top-right" reverseOrder={false} />
 
         <div>
-          <Navbar setIsOpen={setIsSidebarOpen} />
+          <Navbar setIsOpen={setIsSidebarOpen} /> 
         </div>
 
         <div className="flex flex-1">
