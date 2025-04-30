@@ -1,44 +1,135 @@
-// app/challenge/join/[id]/JoinForm.tsx
+
 "use client";
 
-import React from "react";
+import axios from "axios";
 
-type JoinFormProps = {
-  challenge: {
-   
-    name: string;
-    email: string;
-  };
-};
+// Create or import axiosInstance
+const axiosInstance = axios.create({
+  baseURL: "https://localhost:7205", // Replace with your API base URL
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+import React, { useState } from "react";
 
+ // Adjust the import path as necessary
 
-const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
-  const [selectedCategory, setSelectedCategory] = React.useState<string>("");
+interface FormData {
+  fullName: string;
+  email: string;
+  challengeCategory: string;
+  reasonForChoosing: string;
+  termsAccepted: boolean;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission logic here
-    console.log("Form submitted", {
-      ...challenge,
-      category: selectedCategory
+interface JoinFormProps {
+  challengeId: string;
+}
+
+const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
+  const [formData, setFormData] = useState<FormData>({
+    fullName: "",
+    email: "",
+    challengeCategory: "", // Default to Beginner
+    reasonForChoosing: "",
+    termsAccepted: false,
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
     });
-    // You would typically send this data to your backend
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.post('/api/Challenges', {
+          FullName: formData.fullName,
+          Email: formData.email,
+          ChallengeCategory: formData.challengeCategory,
+          ReasonForChoosing: formData.reasonForChoosing,
+          TermsAccepted: formData.termsAccepted,
+      });
+
+      if (response.status === 200) {
+        setSubmitSuccess(true);
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "An error occurred while submitting the form.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (submitSuccess) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-green-600 text-2xl mb-4">✓</div>
+        <h2 className="text-xl font-semibold mb-2">Thank you for joining the challenge!</h2>
+        <p className="text-gray-600">
+          We've received your application for the {challengeId} at {formData.challengeCategory} level.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-500"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
           Full Name
         </label>
         <input
           type="text"
-          id="name"
-          name="name"
-          placeholder="Sandali Sathsarani"
-          
+          id="fullName"
+          name="fullName"
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+          maxLength={50}
+          value={formData.fullName}
+          onChange={handleChange}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         />
       </div>
 
@@ -50,73 +141,73 @@ const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
           type="email"
           id="email"
           name="email"
-          placeholder="username@gmail.com"
-          defaultValue={challenge.email}
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+          value={formData.email}
+          onChange={handleChange}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         />
       </div>
 
       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-          Challenge Type Category
+        <label htmlFor="challengeCategory" className="block text-sm font-medium text-gray-700">
+          Challenge Difficulty Level
         </label>
         <select
-          id="category"
-          name="category"
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          id="challengeCategory"
+          name="challengeCategory"
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+          value={formData.challengeCategory}
+          onChange={handleChange}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         >
-          <option value="">Select a category</option>
-          <option value="dessert">Dessert</option>
-          <option value="main-dish">Main Dish</option>
+          <option value="Beginner">Beginner</option>
+          <option value="Hard">Hard</option>
         </select>
       </div>
 
-      <div className="space-y-6">
-  {/* Existing Commitment Statement */}
-  
-
-  {/* New: Why You Chose This Challenge */}
-  <div>
-    <label htmlFor="motivation" className="block text-sm font-medium text-gray-700">
-      Why did you choose this challenge?
-    </label>
-    <textarea
-      id="motivation"
-      name="motivation"
-      rows={3}
-      required
-      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-      placeholder="I chose this challenge because..."
-    />
-    <p className="mt-1 text-sm text-gray-500">
-      Share what excites you about this challenge or your personal goals
-    </p>
-  </div>
-</div>
-
-      <div className="flex items-center">
-        <input
-          id="terms"
-          name="terms"
-          type="checkbox"
-          required
-          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-        />
-        <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-          I agree to the challenge terms and conditions
+      <div>
+        <label htmlFor="reasonForChoosing" className="block text-sm font-medium text-gray-700">
+          Why do you want to join this challenge?
         </label>
+        <textarea
+          id="reasonForChoosing"
+          name="reasonForChoosing"
+          required
+          maxLength={50}
+          value={formData.reasonForChoosing}
+          onChange={handleChange}
+          rows={3}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+        />
+      </div>
+
+      <div className="flex items-start">
+        <div className="flex items-center h-5">
+          <input
+            id="termsAccepted"
+            name="termsAccepted"
+            type="checkbox"
+            required
+            checked={formData.termsAccepted}
+            onChange={handleChange}
+            className="focus:ring-orange-500 h-4 w-4 text-orange-600 border-gray-300 rounded"
+          />
+        </div>
+        <div className="ml-3 text-sm">
+          <label htmlFor="termsAccepted" className="font-medium text-gray-700">
+            I accept the terms and conditions
+          </label>
+          <p className="text-gray-500">You agree to participate in this challenge according to the rules.</p>
+        </div>
       </div>
 
       <div>
         <button
           type="submit"
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+          disabled={isSubmitting}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Join Challenge
+          {isSubmitting ? "Submitting..." : "Join Challenge"}
         </button>
       </div>
     </form>
