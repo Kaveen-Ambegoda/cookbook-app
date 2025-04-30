@@ -28,7 +28,7 @@ export default function ManageRecipes() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await axios.get('https://localhost:7205/api/Recipe');
+        const response = await axios.get('https://localhost:7205/api/Recipe/recipeMangePage');
         setRecipes(response.data);
       } catch (error) {
         console.error('Error fetching recipes:', error);

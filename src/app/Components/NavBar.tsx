@@ -76,7 +76,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
         <div className="relative w-8 h-8 mr-1 ml-4" >
           <Image 
-            src="/image/logo.jpg" // Replace with the actual path to your logo image
+            src="/image/logo.jpg" 
             alt="Logo"
             layout="fill"
             objectFit="cover"
