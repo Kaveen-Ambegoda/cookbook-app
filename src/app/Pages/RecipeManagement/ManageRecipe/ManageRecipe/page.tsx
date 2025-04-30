@@ -4,7 +4,9 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
 import axios from 'axios';
-import Recipe from '../RecipeCard/page';
+import RecipeCard from '../RecipeCard/page';
+import toast from 'react-hot-toast';
+import SimpleFooter from '@/app/Components/SimpleFooter';
 
 interface RecipeType {
   id: number;
@@ -54,10 +56,10 @@ export default function ManageRecipes() {
         setRecipes((prev) => prev.filter((r) => r.id !== recipeToDelete.id));
         setRecipeToDelete(null);
         setShowConfirm(false);
-        alert("Recipe Deleted successfully!");
+        toast.success("Recipe Deleted successfully!");
       } catch (error) {
         console.error('Failed to delete recipe:', error);
-        alert("Failed to delete recipe. Please try again.");
+        toast.error("Failed to delete recipe. Please try again.");
       }
     }
   };
@@ -94,7 +96,7 @@ export default function ManageRecipes() {
           </Link>
 
           {recipes.map((recipe) => (
-            <Recipe
+            <RecipeCard
               key={recipe.id}
               recipe={{
                 title: recipe.title,
@@ -128,6 +130,7 @@ export default function ManageRecipes() {
           </div>
         </div>
       )}
+      <SimpleFooter/>
     </div>
   );
 }

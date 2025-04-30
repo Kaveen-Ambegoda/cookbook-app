@@ -74,8 +74,14 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
           <FaBars />
         </button>
 
-        <div className="relative w-8 h-8 mr-1 ml-4">
-          <Image src="/image/egg.jpg" alt="Logo" fill className="rounded-full object-cover" />
+        <div className="relative w-8 h-8 mr-1 ml-4" >
+          <Image 
+            src="/image/logo.jpg" // Replace with the actual path to your logo image
+            alt="Logo"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-full"
+          />
         </div>
 
         <h1 className="text-xl font-bold pl-2 text-gray-900">CookBook</h1>
