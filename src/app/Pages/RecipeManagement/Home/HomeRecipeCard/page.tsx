@@ -63,7 +63,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
       {/* View Recipe Button */}
       <div className="mt-5 text-center">
         <Link
-          href={`/Pages/RecipeManagement/ManageRecipe/ViewRecipe`}
+          href={`Pages/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`}
           className="text-white bg-green-700 px-2 py-1 rounded-xl hover:bg-green-900 transition text-sm"
         >
           View Recipe
