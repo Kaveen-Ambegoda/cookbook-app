@@ -18,7 +18,7 @@ type RecipeFormData = {
   protein: string;
   fat: string;
   carbs: string;
-  imageUrl: string; // ✅ Added
+  imageUrl: string; 
 };
 
 const steps = ["Basic Info", "Details", "Nutrition & Image"];
