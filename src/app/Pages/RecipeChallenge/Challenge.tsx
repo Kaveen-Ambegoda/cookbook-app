@@ -1,3 +1,5 @@
+// challenge component
+
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,14 +21,9 @@ type ChallengeProps = {
 const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
   return (
     <div >
-      {/* Semi-transparent black overlay */}
       <div className="min-h-[80vh] rounded-lg flex items-center justify-center py-8 px-4 bg-black/10">
         
-          
-          
-          {/* Challenge Card */}
           <div className="bg-white/95 p-5 rounded-lg shadow-2xl transition transform hover:scale-[1.01] border border-white/20">
-            {/* Centered Title and Subtitle */}
             <div className="text-center mb-5">
               <h3 className="text-3xl font-extrabold text-orange-500 md:text-5xl tracking-wide drop-shadow">
                 {challenge.title}
@@ -81,9 +78,8 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
                   </button>
                   
                   <Link
-                    href={`/Pages/RecipeChallenge/JoinChallengePage/${challenge.title}`}
-                    className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium w-full sm:w-auto text-center shadow-md hover:shadow-lg"
-                  >
+                    href={`/Pages/RecipeChallenge/JoinChallengePage/${encodeURIComponent(challenge.title)}`}
+                    className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium w-full sm:w-auto text-center shadow-md hover:shadow-lg">
                     Join Challenge
                   </Link>
                 </div>

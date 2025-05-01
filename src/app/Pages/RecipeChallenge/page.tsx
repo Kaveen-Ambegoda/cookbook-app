@@ -1,7 +1,4 @@
 import ChallengeCard from './ChallengeCard';
-
-
-
 export default function Home() { 
   return (
     <div className="pl-25 pr-10 pt-20 bg-gray-100" > 

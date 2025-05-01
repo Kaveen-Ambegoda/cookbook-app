@@ -2,6 +2,8 @@
 "use client";
 
 import axios from "axios";
+import { Link } from "lucide-react";
+
 
 // Create or import axiosInstance
 const axiosInstance = axios.create({
@@ -20,19 +22,23 @@ interface FormData {
   challengeCategory: string;
   reasonForChoosing: string;
   termsAccepted: boolean;
+  
 }
 
 interface JoinFormProps {
   challengeId: string;
+  
 }
 
 const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
+  
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
     challengeCategory: "", // Default to Beginner
     reasonForChoosing: "",
     termsAccepted: false,
+ 
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +69,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           ChallengeCategory: formData.challengeCategory,
           ReasonForChoosing: formData.reasonForChoosing,
           TermsAccepted: formData.termsAccepted,
+          ChallengeName: challengeId,
       });
 
       if (response.status === 200) {
@@ -79,14 +86,20 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     }
   };
 
+  // After choose category go to the submit recipe page
   if (submitSuccess) {
     return (
       <div className="text-center py-8">
         <div className="text-green-600 text-2xl mb-4">✓</div>
         <h2 className="text-xl font-semibold mb-2">Thank you for joining the challenge!</h2>
         <p className="text-gray-600">
-          We've received your application for the {challengeId} at {formData.challengeCategory} level.
+          We've received your application for the "{challengeId}" at {formData.challengeCategory} Category.
         </p>
+        <a href={`/Pages/RecipeChallenge/JoinChallenge/SubmitRecipe/${encodeURIComponent(challengeId)}`}
+        className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block">
+        
+        Submit Your Recipe Now
+        </a>
       </div>
     );
   }
@@ -150,7 +163,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
 
       <div>
         <label htmlFor="challengeCategory" className="block text-sm font-medium text-gray-700">
-          Challenge Difficulty Level
+          Select Challenge Category
         </label>
         <select
           id="challengeCategory"
@@ -160,8 +173,9 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           onChange={handleChange}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         >
-          <option value="Beginner">Beginner</option>
-          <option value="Hard">Hard</option>
+          <option value="Category" >Category</option>
+          <option value="Dessert">Dessert</option>
+          <option value="Main Dish">Main Dish</option>
         </select>
       </div>
 

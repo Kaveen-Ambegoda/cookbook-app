@@ -1,7 +1,10 @@
 import React from "react";
 import { SiPocket } from "react-icons/si";
 import Challenge from "./Challenge";
+import { it } from "node:test";
 
+
+// Hardcoded because it's come from backend and enter data by admin user
 export const challenges = [
   { 
     id: 1, 
