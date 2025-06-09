@@ -12,7 +12,7 @@ import SimpleFooter from '@/app/Components/SimpleFooter';
 interface RecipeType {
   id: number;
   title: string;
-  imageUrl: string;
+  image: string;
 }
 
 export default function ManageRecipes() {
@@ -29,7 +29,7 @@ export default function ManageRecipes() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await axios.get('https://localhost:7205/api/Recipe/recipeMangePage');
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/recipeManagePage`);
         setRecipes(response.data);
       } catch (error) {
         console.error('Error fetching recipes:', error);
@@ -54,7 +54,7 @@ export default function ManageRecipes() {
   const confirmDelete = async () => {
     if (recipeToDelete) {
       try {
-        await axios.delete(`https://localhost:7205/api/Recipe/deleteRecipe/${recipeToDelete.id}`);
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/deleteRecipe/${recipeToDelete.id}`);
         setRecipes((prev) => prev.filter((r) => r.id !== recipeToDelete.id));
         setRecipeToDelete(null);
         setShowConfirm(false);
@@ -106,10 +106,7 @@ export default function ManageRecipes() {
           {recipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
-              recipe={{
-                title: recipe.title,
-                image: recipe.imageUrl,
-              }}
+              recipe={recipe}
               onUpdate={() => handleUpdateClick(recipe)}
               onDelete={() => handleDeleteClick(recipe)}
             />

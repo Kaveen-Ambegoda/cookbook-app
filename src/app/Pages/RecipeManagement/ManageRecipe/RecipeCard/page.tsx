@@ -2,7 +2,7 @@ import React from 'react';
 
 interface Recipe {
   title: string;
-  image: string;
+  image: string | null;
 }
 
 interface RecipeCardProps {
@@ -17,10 +17,11 @@ export default function RecipeCard({ recipe, onUpdate, onDelete }: RecipeCardPro
       
       <div className="p-4 flex flex-col items-center">
         <img
-          src={recipe.image || "/image/default.jpg"}
+          src={recipe.image ?? "/image/default.jpg"}
           alt={recipe.title}
           className="rounded-full w-24 h-24 object-cover"
         />
+
         <h3 className="text-center mt-3 font-semibold text-lg">{recipe.title}</h3>
       </div>
 

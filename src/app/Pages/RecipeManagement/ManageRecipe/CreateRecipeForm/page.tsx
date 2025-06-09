@@ -14,11 +14,11 @@ type RecipeFormData = {
   category: string;
   cookingTime: number;
   portion: number;
-  calories: string;
-  protein: string;
-  fat: string;
-  carbs: string;
-  imageUrl: string; 
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  imageFile: FileList;
 };
 
 const steps = ["Basic Info", "Details", "Nutrition & Image"];
@@ -40,18 +40,34 @@ const CreateRecipePage = () => {
     console.log("Form submitted:", data);
 
     try {
-      const response = await axios.post('https://localhost:7205/api/Recipe/addRecipe', data, {
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("category", data.category);
+      formData.append("cookingTime", data.cookingTime.toString());
+      formData.append("portion", data.portion.toString());
+      formData.append("ingredients", data.ingredients);
+      formData.append("instructions", data.instructions);
+      formData.append("calories", data.calories.toString());
+      formData.append("protein", data.protein.toString());
+      formData.append("fat", data.fat.toString());
+      formData.append("carbs", data.carbs.toString());
+
+      if (data.imageFile && data.imageFile.length > 0) {
+        formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
+      }
+
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`, formData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
       });
 
       console.log("Recipe added successfully:", response.data);
       toast.success("Recipe added successfully!");
       reset();
-      setStep(0); // Reset to the first step after submission
+      setStep(0);
       setTimeout(() => {
-        router.replace('/Pages/RecipeManagement/ManageRecipe/ManageRecipe'); // Navigate to the RecipeManage page
+        router.replace('/Pages/RecipeManagement/ManageRecipe/ManageRecipe');
       }, 500);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
@@ -64,13 +80,9 @@ const CreateRecipePage = () => {
     }
   };
 
-
   return (
     <div className="min-h-screen relative pl-16">
-      <div
-        className="absolute inset-y-0 left-16 right-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: "url('/image/bg.png')" }}
-      />
+      <div className="absolute inset-y-0 left-0 right-0 bg-cover bg-center z-0 bg-[url('/image/bg.png')]" />
       <div className="relative z-10 max-w-4xl mx-auto pt-36 pb-12 px-6">
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8">
           <h1 className="text-3xl font-bold text-center text-green-800 mb-6">
@@ -81,10 +93,11 @@ const CreateRecipePage = () => {
             {steps.map((label, index) => (
               <div
                 key={index}
-                className={`text-center flex-1 font-medium text-sm ${step === index
-                  ? "text-orange-600 border-b-2 border-orange-600"
-                  : "text-gray-400"
-                  }`}
+                className={`text-center flex-1 font-medium text-sm ${
+                  step === index
+                    ? "text-orange-600 border-b-2 border-orange-600"
+                    : "text-gray-400"
+                }`}
               >
                 {label}
               </div>
@@ -106,9 +119,7 @@ const CreateRecipePage = () => {
                       {...register("title", { required: "Title is required" })}
                       className="w-full border rounded px-3 py-2"
                     />
-                    {errors.title && (
-                      <p className="text-red-500 text-sm">{errors.title.message}</p>
-                    )}
+                    {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
                   </div>
                   <div>
                     <label className="block font-medium">Category</label>
@@ -121,54 +132,46 @@ const CreateRecipePage = () => {
                       <option>Appetizer</option>
                       <option>Dessert</option>
                     </select>
-                    {errors.category && (
-                      <p className="text-red-500 text-sm">{errors.category.message}</p>
-                    )}
+                    {errors.category && <p className="text-red-500 text-sm">{errors.category.message}</p>}
                   </div>
                   <div>
                     <label className="block font-medium">Cooking Time</label>
                     <input
+                      type="number"
                       {...register("cookingTime", { required: "Required" })}
                       className="w-full border rounded px-3 py-2"
                     />
-                    {errors.cookingTime && (
-                      <p className="text-red-500 text-sm">{errors.cookingTime.message}</p>
-                    )}
+                    {errors.cookingTime && <p className="text-red-500 text-sm">{errors.cookingTime.message}</p>}
                   </div>
                   <div>
                     <label className="block font-medium">Portion</label>
                     <input
+                      type="number"
                       {...register("portion", { required: "Required" })}
                       className="w-full border rounded px-3 py-2"
                     />
-                    {errors.portion && (
-                      <p className="text-red-500 text-sm">{errors.portion.message}</p>
-                    )}
+                    {errors.portion && <p className="text-red-500 text-sm">{errors.portion.message}</p>}
                   </div>
                 </div>
               )}
 
               {step === 1 && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className="block font-medium">Ingredients</label>
                     <textarea
                       {...register("ingredients", { required: "Required" })}
-                      className="w-full border rounded px-3 py-2 h-32"
+                      className="w-full border rounded px-3 py-2 h-28"
                     />
-                    {errors.ingredients && (
-                      <p className="text-red-500 text-sm">{errors.ingredients.message}</p>
-                    )}
+                    {errors.ingredients && <p className="text-red-500 text-sm">{errors.ingredients.message}</p>}
                   </div>
                   <div>
                     <label className="block font-medium">Instructions</label>
                     <textarea
                       {...register("instructions", { required: "Required" })}
-                      className="w-full border rounded px-3 py-2 h-40"
+                      className="w-full border rounded px-3 py-2 h-30"
                     />
-                    {errors.instructions && (
-                      <p className="text-red-500 text-sm">{errors.instructions.message}</p>
-                    )}
+                    {errors.instructions && <p className="text-red-500 text-sm">{errors.instructions.message}</p>}
                   </div>
                 </div>
               )}
@@ -178,6 +181,7 @@ const CreateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Calories</label>
                     <input
+                      type="number"
                       {...register("calories", { required: "Required" })}
                       className="w-full border rounded px-3 py-2"
                     />
@@ -185,6 +189,7 @@ const CreateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Protein</label>
                     <input
+                      type="number"
                       {...register("protein", { required: "Required" })}
                       className="w-full border rounded px-3 py-2"
                     />
@@ -192,6 +197,7 @@ const CreateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Fat</label>
                     <input
+                      type="number"
                       {...register("fat", { required: "Required" })}
                       className="w-full border rounded px-3 py-2"
                     />
@@ -199,18 +205,21 @@ const CreateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Carbs</label>
                     <input
+                      type="number"
                       {...register("carbs", { required: "Required" })}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block font-medium">Image URL</label>
+                    <label className="block font-medium">Image</label>
                     <input
-                      {...register("imageUrl", { required: "Image URL is required" })}
+                      type="file"
+                      accept="image/*"
+                      {...register("imageFile")}
                       className="w-full border rounded px-3 py-2"
                     />
-                    {errors.imageUrl && (
-                      <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>
+                    {errors.imageFile && (
+                      <p className="text-red-500 text-sm">{errors.imageFile.message}</p>
                     )}
                   </div>
                 </div>
@@ -221,9 +230,8 @@ const CreateRecipePage = () => {
               <button
                 type="button"
                 onClick={prevStep}
-                className={`px-6 py-2 border rounded text-gray-600 hover:bg-gray-100 ${
-                  step === 0 ? "invisible" : ""
-                }`}
+                className={`px-6 py-2 border rounded text-gray-600 hover:bg-gray-100 ${step === 0 ? "invisible" : ""
+                  }`}
               >
                 Back
               </button>

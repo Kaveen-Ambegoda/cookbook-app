@@ -3,7 +3,7 @@
 const Welcome = () => {
     return (
       <div className="mb-8 mt-4 relative bg-[url('/image/bg.png')] bg-cover bg-no-repeat">
-        <section className="text-center py-24 px-6 bg-white/70">
+        <section className="text-center py-24 px-6">
           <h1 className="text-4xl font-bold">
             <span className="text-orange-600">WELCOME TO OUR </span>
             <span className="text-green-700">COOKBOOK</span>          
@@ -18,7 +18,7 @@ const Welcome = () => {
           </p>
         </section>
   
-        {/* Optional decorative images */}
+        {/* This is right sight image */}
         <img
           src="/image/topbg.png"
           alt="Top bg"
