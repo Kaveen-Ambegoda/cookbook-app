@@ -7,8 +7,18 @@ import HomeNavBar from "@/app/Components/HomeNavBar";
 import Welcome from "../Welcome/page";
 import Footer from "@/app/Components/Footer";
 
+interface Recipe {
+  id: number;
+  title: string;
+  cookingTime: number;
+  portion: number;
+  image: string;
+  favorites?: number;
+  reviews?: number;
+}
+
 const HomePage = () => {
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
     const fetchRecipes = async () => {
@@ -25,15 +35,16 @@ const HomePage = () => {
 
   return (
     <div>
-      <HomeNavBar/>
-      <Welcome/>
-      <h1 className="text-green-700 text-2xl font-medium pl-4 pb-2"> All Recipes</h1>
+      <HomeNavBar />
+      <Welcome />
+      <h1 className="text-green-700 text-2xl font-medium pl-4 pb-2">All Recipes</h1>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 p-4">
         {recipes.map((recipe) => {
-          let imageUrl = recipe.imageUrl;
-          if (imageUrl && !imageUrl.startsWith("http") && !imageUrl.startsWith("/")) {
-            imageUrl = "/image/" + imageUrl;
-          }
+          const image = recipe.image?.startsWith("http")
+            ? recipe.image
+            : "/image/default.jpg";
+
           return (
             <HomeRecipeCard
               key={recipe.id}
@@ -42,7 +53,7 @@ const HomePage = () => {
                 title: recipe.title,
                 cookingTime: recipe.cookingTime,
                 portion: recipe.portion,
-                imageUrl: imageUrl,
+                image: image,
                 favorites: recipe.favorites,
                 reviews: recipe.reviews,
               }}
@@ -50,7 +61,8 @@ const HomePage = () => {
           );
         })}
       </div>
-      <Footer/>
+
+      <Footer />
     </div>
   );
 };

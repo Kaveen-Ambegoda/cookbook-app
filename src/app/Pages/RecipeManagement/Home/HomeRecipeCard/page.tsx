@@ -9,7 +9,7 @@ type RecipeProps = {
     title: string;
     cookingTime: number;
     portion: number;
-    imageUrl: string; // Ensure 'imageUrl' is used here
+    image: string; 
     favorites?: number;
     reviews?: number;
   };
@@ -21,12 +21,13 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
       {/* Recipe Image */}
       <div className="flex justify-center">
         <Image
-          src={recipe.imageUrl} // Use 'imageUrl' here
+          src={recipe.image ? recipe.image : "/images/default.jpg"} // full URL or fallback
           width={300}
           height={400}
           alt={recipe.title}
           className="rounded-lg object-cover"
         />
+
       </div>
 
       {/* Recipe Title */}

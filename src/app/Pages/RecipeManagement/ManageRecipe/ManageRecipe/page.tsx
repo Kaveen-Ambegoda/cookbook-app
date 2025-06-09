@@ -4,22 +4,23 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
 import axios from 'axios';
-import RecipeCard from '../RecipeCard/page';
 import toast from 'react-hot-toast';
+
+import RecipeCard from '../RecipeCard/page';
 import SimpleFooter from '@/app/Components/SimpleFooter';
 
 interface RecipeType {
   id: number;
   title: string;
-  imageUrl: string;
+  image: string;
 }
 
 export default function ManageRecipes() {
   const router = useRouter(); 
 
   const [recipes, setRecipes] = useState<RecipeType[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // ✅ loading state
-  const [error, setError] = useState<string | null>(null); // ✅ error state
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<RecipeType | null>(null);
 
@@ -28,7 +29,7 @@ export default function ManageRecipes() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await axios.get('https://localhost:7205/api/Recipe/recipeMangePage');
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/recipeManagePage`);
         setRecipes(response.data);
       } catch (error) {
         console.error('Error fetching recipes:', error);
@@ -37,6 +38,7 @@ export default function ManageRecipes() {
         setIsLoading(false);
       }
     };
+
     fetchRecipes();
   }, []);
 
@@ -52,11 +54,11 @@ export default function ManageRecipes() {
   const confirmDelete = async () => {
     if (recipeToDelete) {
       try {
-        await axios.delete(`https://localhost:7205/api/Recipe/deleteRecipe/${recipeToDelete.id}`);
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/deleteRecipe/${recipeToDelete.id}`);
         setRecipes((prev) => prev.filter((r) => r.id !== recipeToDelete.id));
         setRecipeToDelete(null);
         setShowConfirm(false);
-        toast.success("Recipe Deleted successfully!");
+        toast.success("Recipe deleted successfully!");
       } catch (error) {
         console.error('Failed to delete recipe:', error);
         toast.error("Failed to delete recipe. Please try again.");
@@ -75,13 +77,17 @@ export default function ManageRecipes() {
         <h2 className="text-2xl font-semibold mb-4 text-green-800">Manage your Recipes</h2>
       </div>
 
-      {/* ✅ Loading and Error Messages */}
+      {/* Loading and Error Messages */}
       {isLoading && (
-        <p className="text-center text-gray-500 animate-pulse">Loading recipes...</p>
+        <p className="text-center text-gray-500 animate-pulse">
+          Loading recipes...
+        </p>
       )}
 
       {error && (
-        <p className="text-center text-red-500">{error}</p>
+        <p className="text-center text-red-500">
+          {error}
+        </p>
       )}
 
       {!isLoading && !error && (
@@ -91,17 +97,16 @@ export default function ManageRecipes() {
               <div className="rounded-full w-20 h-20 bg-gray-100 flex items-center justify-center text-4xl text-gray-400">
                 +
               </div>
-              <h3 className="text-center mt-3 font-semibold text-lg">Add New</h3>
+              <h3 className="text-center mt-3 font-semibold text-lg">
+                Add New
+              </h3>
             </div>
           </Link>
 
           {recipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
-              recipe={{
-                title: recipe.title,
-                image: recipe.imageUrl,
-              }}
+              recipe={recipe}
               onUpdate={() => handleUpdateClick(recipe)}
               onDelete={() => handleDeleteClick(recipe)}
             />
@@ -114,23 +119,28 @@ export default function ManageRecipes() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
             <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
-            <p className="mb-6">Are you sure you want to delete "{recipeToDelete?.title}"?</p>
+            <p className="mb-6">
+              Are you sure you want to delete "{recipeToDelete?.title}"?
+            </p>
             <div className="flex justify-end space-x-4">
               <button 
                 onClick={cancelDelete} 
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition">
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition"
+              >
                 Cancel
               </button>
               <button 
                 onClick={confirmDelete} 
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition">
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition"
+              >
                 Delete
               </button>
             </div>
           </div>
         </div>
       )}
-      <SimpleFooter/>
+
+      <SimpleFooter />
     </div>
   );
 }

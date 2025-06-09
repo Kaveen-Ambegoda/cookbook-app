@@ -14,11 +14,11 @@ type RecipeFormData = {
   category: string;
   cookingTime: number;
   portion: number;
-  calories: string;
-  protein: string;
-  fat: string;
-  carbs: string;
-  imageUrl: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  imageFile: FileList;
 };
 
 const steps = ["Basic Info", "Details", "Nutrition & Image"];
@@ -43,7 +43,7 @@ const UpdateRecipePage = () => {
       console.log("Fetching recipe with ID:", recipeId); // Log the recipeId to ensure it's correct
       const fetchRecipeData = async () => {
         try {
-          const response = await axios.get(`https://localhost:7205/api/Recipe/${recipeId}`);
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${recipeId}`);
           console.log("Fetched recipe data:", response.data); // Log the fetched recipe data
           setRecipeData(response.data);
           reset(response.data); // Populate the form with fetched data
@@ -62,11 +62,23 @@ const UpdateRecipePage = () => {
   const onSubmit = async (data: RecipeFormData) => {
     console.log("Form updated:", data); // Log the form data on submit
     try {
-      const response = await axios.put(`https://localhost:7205/api/Recipe/updateRecipe/${recipeId}`, data, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("category", data.category);
+      formData.append("cookingTime", data.cookingTime.toString());
+      formData.append("portion", data.portion.toString());
+      formData.append("ingredients", data.ingredients);
+      formData.append("instructions", data.instructions);
+      formData.append("calories", data.calories.toString());
+      formData.append("protein", data.protein.toString());
+      formData.append("fat", data.fat.toString());
+      formData.append("carbs", data.carbs.toString());
+
+      if (data.imageFile && data.imageFile.length > 0) {
+        formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
+      }
+
+      const response = await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`, formData);
       console.log("Recipe updated successfully:", response.data);
       toast.success("Recipe updated successfully!");
 
@@ -94,8 +106,7 @@ const UpdateRecipePage = () => {
   return (
     <div className="min-h-screen relative pl-16">
       <div
-        className="absolute inset-y-0 left-16 right-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: "url('/image/bg.png')" }}
+        className="absolute inset-y-0 left-0 right-0 bg-cover bg-center z-0 bg-[url('/image/bg.png')]"
       />
       <div className="relative z-10 max-w-4xl mx-auto pt-36 pb-12 px-6">
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8">
@@ -201,6 +212,7 @@ const UpdateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Calories</label>
                     <input
+                      type="number"
                       {...register("calories", { required: "Calories are required" })}
                       className="w-full border rounded px-3 py-2"
                       defaultValue={recipeData.calories}
@@ -209,6 +221,7 @@ const UpdateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Protein</label>
                     <input
+                      type="number"
                       {...register("protein", { required: "Protein is required" })}
                       className="w-full border rounded px-3 py-2"
                       defaultValue={recipeData.protein}
@@ -217,6 +230,7 @@ const UpdateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Fat</label>
                     <input
+                      type="number"
                       {...register("fat", { required: "Fat is required" })}
                       className="w-full border rounded px-3 py-2"
                       defaultValue={recipeData.fat}
@@ -225,19 +239,21 @@ const UpdateRecipePage = () => {
                   <div>
                     <label className="block font-medium">Carbs</label>
                     <input
+                      type="number"
                       {...register("carbs", { required: "Carbs are required" })}
                       className="w-full border rounded px-3 py-2"
                       defaultValue={recipeData.carbs}
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block font-medium">Image URL</label>
+                    <label className="block font-medium">Image</label>
                     <input
-                      {...register("imageUrl", { required: "Image URL is required" })}
+                      type="file"
+                      accept="image/*"
+                      {...register("imageFile")}
                       className="w-full border rounded px-3 py-2"
-                      defaultValue={recipeData.imageUrl}
                     />
-                    {errors.imageUrl && <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>}
+                    {errors.imageFile && <p className="text-red-500 text-sm">{errors.imageFile.message}</p>}
                   </div>
                 </div>
               )}
