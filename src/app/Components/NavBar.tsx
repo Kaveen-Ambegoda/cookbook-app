@@ -61,7 +61,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
         <div className="flex ml-auto gap-4 sm:gap-8">
           {buttonText && (
             <button
-              className={`text-white outline outline-2 outline-[#F25019] font-[500] text-[0.9rem] sm:text-[1rem] text-medium bg-[#F25019] px-4 py-2 sm:px-5 sm:py-3 rounded-[10] hover:bg-[#C93E0F]  active:bg-[#C93E0F] cursor-pointer transition-colors duration-400 ease-in-out ${inter.className}`}
+              className={`text-white rounded-xl outline outline-2 outline-[#F25019] font-[500] text-[0.9rem] sm:text-[1rem] text-medium bg-[#F25019] px-4 py-2 sm:px-5 sm:py-3  hover:bg-[#C93E0F]  active:bg-[#C93E0F] cursor-pointer transition-colors duration-400 ease-in-out ${inter.className}`}
               onClick={ButtonClick}
             >
               {buttonText}
