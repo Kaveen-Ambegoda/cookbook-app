@@ -1,115 +1,207 @@
-'use client'; // This ensures it's a client component
+'use client';
 
-import React, { useState } from "react";
+import { usePathname, useRouter } from 'next/navigation';
 import {
   FaHome,
   FaUtensils,
   FaClipboardList,
   FaHeart,
   FaCog,
-  FaSignOutAlt
-} from "react-icons/fa";
-import Link from 'next/link';
-import MenuPanel from './MenuPanel';
+  FaSignOutAlt,
+  FaUsers,
+} from 'react-icons/fa';
+import { useState, useEffect } from 'react';
 
 interface SidebarProps {
-  isOpen: boolean;
+  isOpen?: boolean;
 }
 
-const iconData = [
-  { icon: FaHome, label: "Home", href: "/" },
-  { icon: FaUtensils, label: "Manage Recipe" },
-  { icon: FaClipboardList, label: "Clipboard List" },
-  { icon: FaHeart, label: "Favorites" },
-  { icon: FaCog, label: "Settings" },
-  { icon: FaSignOutAlt, label: "Logout" },
-];
+export default function Sidebar({ isOpen = false }: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-const Sidebar = ({ isOpen }: SidebarProps) => {
-  const [showMenuPanel, setShowMenuPanel] = useState(false);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  // Check authentication status
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsAuthenticated(!!token);
+  }, [pathname]); // Re-check when pathname changes
 
-  const toggleMenuPanel = () => {
-    setShowMenuPanel((prev) => !prev);
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    router.push('/Pages/Login_Register/Login');
   };
 
-  const hideMenuPanel = () => {
-    setShowMenuPanel(false);
-  };
+  // Navigation items
+  const navigationItems = [
+    { 
+      icon: FaHome, 
+      path: '/', 
+      label: 'Home',
+      authRequired: false 
+    },
+    { 
+      icon: FaUtensils, 
+      path: '/recipes', 
+      label: 'Recipes',
+      authRequired: false 
+    },
+    { 
+      icon: FaUsers, 
+      path: '/community', 
+      label: 'Community',
+      authRequired: true // Require authentication for community
+    },
+    { 
+      icon: FaClipboardList, 
+      path: '/meal-plans', 
+      label: 'Meal Plans',
+      authRequired: false 
+    },
+    { 
+      icon: FaHeart, 
+      path: '/favorites', 
+      label: 'Favorites',
+      authRequired: false 
+    },
+    { 
+      icon: FaCog, 
+      path: '/settings', 
+      label: 'Settings',
+      authRequired: false 
+    },
+  ];
 
-  const handleIconClick = (index: number) => {
-    if (index === 1) {
-      toggleMenuPanel();
-      setActiveIndex(index);
-      setActiveIndex(null);
-    } else {
-      setActiveIndex(index);
-      hideMenuPanel();
-      if (activeIndex === 1) {
-        setActiveIndex(null);
-      }
-      setActiveIndex(null);
+  // Don't show sidebar on login/register pages
+  if (pathname?.toLowerCase().startsWith('/pages/login_register')) {
+    return null;
+  }
+
+  const handleNavigation = (path: string, authRequired: boolean) => {
+    // If trying to access auth-required page and not authenticated, redirect to login
+    if (authRequired && !isAuthenticated) {
+      router.push('/Pages/Login_Register/Login');
+      return;
     }
+    router.push(path);
   };
 
   return (
     <>
-      <div
-        className={`bg-green-800 text-white fixed top-0 left-0 h-full flex flex-col items-center py-30 space-y-15 transition-all duration-300 overflow-visible
-        ${isOpen ? "w-16" : "w-0"}`}
+      {/* Sidebar */}
+      <aside 
+        className={`bg-green-800 text-white fixed top-0 left-0 h-full flex flex-col items-center py-20 space-y-4 transition-all duration-300 z-20 ${
+          isOpen ? 'w-64' : 'w-16'
+        }`}
       >
-        {iconData.map(({ icon: Icon, label, href }, i) => {
-          const isHovered = hoveredIndex === i;
-          const isActive = activeIndex === i;
-          const showLabel = isHovered || (!isHovered && isActive);
-
-          const iconElement = (
-            <Icon
-              size={24}
-              className="cursor-pointer hover:text-yellow-400 transition-all duration-300"
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => handleIconClick(i)}
-            />
-          );
-
-          return href ? (
-            <Link
-              key={i}
-              href={href}
-              className="relative flex items-center justify-center w-full"
-            >
-              {iconElement}
-              {showLabel && (
-                <span className="absolute left-full ml-2 bg-black whitespace-nowrap text-white text-xs rounded px-2 py-1 z-50">
-                  {label}
-                </span>
-              )}
-            </Link>
-          ) : (
-            <div
-              key={i}
-              className="relative flex items-center justify-center w-full"
-            >
-              {iconElement}
-              {showLabel && (
-                <span className="absolute left-full ml-2 whitespace-nowrap bg-black text-white text-xs rounded px-2 py-1 z-50">
-                  {label}
-                </span>
+        {navigationItems.map((item, index) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.path || 
+            (item.path === '/community' && pathname === '/community');
+          
+          return (
+            <div key={index} className="relative group w-full">
+              <button
+                onClick={() => handleNavigation(item.path, item.authRequired)}
+                className={`w-full p-3 rounded-lg transition-all duration-300 hover:bg-green-700 hover:scale-105 flex items-center ${
+                  isActive ? 'bg-yellow-400 text-green-800' : ''
+                } ${isOpen ? 'justify-start px-4' : 'justify-center'}`}
+                title={item.label}
+              >
+                <Icon size={24} />
+                
+                {/* Label for expanded sidebar */}
+                {isOpen && (
+                  <span className="ml-4 text-sm font-medium whitespace-nowrap">
+                    {item.label}
+                    {item.authRequired && !isAuthenticated && (
+                      <span className="ml-2 text-xs text-yellow-200">(Login required)</span>
+                    )}
+                  </span>
+                )}
+              </button>
+              
+              {/* Tooltip for collapsed sidebar */}
+              {!isOpen && (
+                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-30">
+                  {item.label}
+                  {item.authRequired && !isAuthenticated && (
+                    <div className="text-xs text-yellow-200">(Login required)</div>
+                  )}
+                </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      {showMenuPanel && (
-        <div className="fixed top-16 left-16 h-[calc(100%-4rem)] z-50">
-          <MenuPanel onHideMenuPanel={hideMenuPanel} />
-        </div>
+        
+        {/* Spacer */}
+        <div className="flex-1"></div>
+        
+        {/* Logout button */}
+        {isAuthenticated ? (
+          <div className="relative group w-full">
+            <button
+              onClick={handleLogout}
+              className={`w-full p-3 rounded-lg transition-all duration-300 hover:bg-red-600 hover:scale-105 flex items-center ${
+                isOpen ? 'justify-start px-4' : 'justify-center'
+              }`}
+              title="Sign Out"
+            >
+              <FaSignOutAlt size={24} />
+              
+              {/* Label for expanded sidebar */}
+              {isOpen && (
+                <span className="ml-4 text-sm font-medium whitespace-nowrap">
+                  Sign Out
+                </span>
+              )}
+            </button>
+            
+            {/* Tooltip for collapsed sidebar */}
+            {!isOpen && (
+              <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-30">
+                Sign Out
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="relative group w-full">
+            <button
+              onClick={() => router.push('/Pages/Login_Register/Login')}
+              className={`w-full p-3 rounded-lg transition-all duration-300 hover:bg-blue-600 hover:scale-105 flex items-center ${
+                isOpen ? 'justify-start px-4' : 'justify-center'
+              }`}
+              title="Sign In"
+            >
+              <FaSignOutAlt size={24} className="rotate-180" />
+              
+              {/* Label for expanded sidebar */}
+              {isOpen && (
+                <span className="ml-4 text-sm font-medium whitespace-nowrap">
+                  Sign In
+                </span>
+              )}
+            </button>
+            
+            {/* Tooltip for collapsed sidebar */}
+            {!isOpen && (
+              <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-30">
+                Sign In
+              </div>
+            )}
+          </div>
+        )}
+      </aside>
+      
+      {/* Overlay for mobile when sidebar is open */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
+          onClick={() => {}} // Handle closing sidebar if needed
+        />
       )}
     </>
   );
-};
-
-export default Sidebar;
+}
