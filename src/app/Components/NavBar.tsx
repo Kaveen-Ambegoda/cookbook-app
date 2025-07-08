@@ -15,6 +15,9 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
+
+  
+//Pass the paths to the variables for If-Else
   const isLoginPage = pathname?.toLowerCase().includes('/login_register/login');
   const isRegisterPage = pathname?.toLowerCase().includes('/login_register/register');
 
@@ -22,9 +25,13 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
   const buttonText = isRegisterPage ? 'Sign In' : isLoginPage ? 'Sign Up' : null;
   const targetUrl = isRegisterPage ? '/Pages/Login_Register/Login' : isLoginPage ? '/Pages/Login_Register/Register' : '#';
 
+
+ //Onclick redirect to targetUrl 
   const ButtonClick = () => {
     router.push(targetUrl);
   };
+
+
 
   // Render the navbar for login or register pages
   if (isLoginPage || isRegisterPage) {
@@ -54,7 +61,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
         <div className="flex ml-auto gap-4 sm:gap-8">
           {buttonText && (
             <button
-              className={`text-[#FFD476] outline outline-2 outline-[#F25019] font-[500] text-[0.9rem] sm:text-[1rem] text-medium bg-[#F25019] px-4 py-2 sm:px-5 sm:py-3 rounded-[10] ${inter.className}`}
+              className={`text-white outline outline-2 outline-[#F25019] font-[500] text-[0.9rem] sm:text-[1rem] text-medium bg-[#F25019] px-4 py-2 sm:px-5 sm:py-3 rounded-[10] hover:bg-[#C93E0F]  active:bg-[#C93E0F] cursor-pointer transition-colors duration-400 ease-in-out ${inter.className}`}
               onClick={ButtonClick}
             >
               {buttonText}
@@ -67,21 +74,15 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
   // Default navbar (for other pages)
   return (
-    <nav className="bg-yellow-400 px-6 py-3 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50">
+    <nav className="bg-yellow-400 px-6 py-3 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-10">
       {/* Left - Logo and Title */}
       <div className="flex items-center space-x-3">
         <button className="text-gray-800 text-xl" onClick={() => setIsOpen((prev) => !prev)}>
           <FaBars />
         </button>
 
-        <div className="relative w-8 h-8 mr-1 ml-4" >
-          <Image 
-            src="/image/logo.jpg" 
-            alt="Logo"
-            layout="fill"
-            objectFit="cover"
-            className="rounded-full"
-          />
+        <div className="relative w-8 h-8 mr-1 ml-4">
+          <Image src="/image/egg.jpg" alt="Logo" fill className="rounded-full object-cover" />
         </div>
 
         <h1 className="text-xl font-bold pl-2 text-gray-900">CookBook</h1>
