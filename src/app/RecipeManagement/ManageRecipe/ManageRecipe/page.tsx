@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
 import axios from 'axios';
 import toast from 'react-hot-toast';
-
-import RecipeCard from '../RecipeCard/page';
-import SimpleFooter from '@/app/Components/SimpleFooter';
+import RecipeCard from '@/components/RecipeCard';
+import SimpleFooter from '@/components/SimpleFooter';
 
 interface RecipeType {
   id: number;
@@ -43,7 +42,7 @@ export default function ManageRecipes() {
   }, []);
 
   const handleUpdateClick = (recipe: RecipeType) => {
-    router.push(`/Pages/RecipeManagement/ManageRecipe/UpdateRecipeForm?id=${recipe.id}`);
+    router.push(`/ManageRecipe/UpdateRecipeForm?id=${recipe.id}`);
   };
 
   const handleDeleteClick = (recipe: RecipeType) => {
@@ -92,7 +91,7 @@ export default function ManageRecipes() {
 
       {!isLoading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 p-4">
-          <Link href="/Pages/RecipeManagement/ManageRecipe/CreateRecipeForm">
+          <Link href="/ManageRecipe/CreateRecipeForm">
             <div className="border pt-14 pb-14 rounded-xl shadow hover:shadow-md transition bg-white flex flex-col items-center justify-center cursor-pointer">
               <div className="rounded-full w-20 h-20 bg-gray-100 flex items-center justify-center text-4xl text-gray-400">
                 +

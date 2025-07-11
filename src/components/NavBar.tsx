@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FaSearch, FaBars, FaBell, FaUserCircle } from 'react-icons/fa';
 import { inter } from '@/app/utils/fonts';
 import Image from 'next/image';
+import SearchBar from './SearchBar';
 
 interface NavBarProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -89,15 +90,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
       {/* Right - Search Bar and Icons */}
       <div className="flex items-center space-x-4">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search"
-            className="px-4 py-2 rounded-full border bg-gray-50 border-gray-300 focus:outline-none w-96"
-          />
-          <FaSearch className="absolute right-3 top-3 text-gray-500" />
-        </div>
-
+        <SearchBar />
         <button className="text-gray-800 text-xl">
           <FaBell />
         </button>
@@ -105,6 +98,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
           <FaUserCircle />
         </button>
       </div>
+
     </nav>
   );
 }

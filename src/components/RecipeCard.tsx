@@ -39,7 +39,6 @@ export default function RecipeCard({ recipe, onUpdate, onDelete }: RecipeCardPro
         >
           🗑
         </button>
-
       </div>
     </div>
   );

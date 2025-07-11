@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import "./globals.css";
 import { Toaster } from "react-hot-toast"; 
-import Sidebar from "./Components/SideBar";
-import Navbar from "./Components/NavBar";
+import Sidebar from "../components/SideBar";
+import Navbar from "../components/NavBar";
 
 export default function RootLayout({
   children,

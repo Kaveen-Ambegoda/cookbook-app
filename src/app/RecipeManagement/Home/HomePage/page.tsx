@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import HomeRecipeCard from "../HomeRecipeCard/page";
-import HomeNavBar from "@/app/Components/HomeNavBar";
+import HomeRecipeCard from "@/components/HomeRecipeCard";
+import HomeNavBar from "@/components/HomeNavBar";
 import Welcome from "../Welcome/page";
-import Footer from "@/app/Components/Footer";
+import Footer from "@/components/Footer";
 
 interface Recipe {
   id: number;
@@ -23,7 +23,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
-        const response = await axios.get("https://localhost:7205/api/Recipe/homePage");
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/homePage`);
         setRecipes(response.data);
       } catch (error) {
         console.error("Error fetching recipes:", error);
