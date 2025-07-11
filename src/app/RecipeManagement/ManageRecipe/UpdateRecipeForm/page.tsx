@@ -78,7 +78,23 @@ const UpdateRecipePage = () => {
         formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
       }
 
-      const response = await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`, formData);
+      const token = localStorage.getItem("token");
+      
+        if (!token) {
+          toast.error("You must be logged in to update a recipe.");
+          return;
+        }
+
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`, // ✅ Include JWT token
+          },
+        }
+      );
       console.log("Recipe updated successfully:", response.data);
       toast.success("Recipe updated successfully!");
 

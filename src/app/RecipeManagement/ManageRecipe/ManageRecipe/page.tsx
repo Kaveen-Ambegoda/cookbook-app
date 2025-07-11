@@ -27,12 +27,27 @@ export default function ManageRecipes() {
     const fetchRecipes = async () => {
       setIsLoading(true);
       setError(null);
+
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/recipeManagePage`);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("User not authenticated. Please log in.");
+          return;
+        }
+
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/myRecipes`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         setRecipes(response.data);
       } catch (error) {
-        console.error('Error fetching recipes:', error);
-        setError('Failed to load recipes. Please try again.');
+        console.error("Error fetching recipes:", error);
+        setError("Failed to load recipes. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -53,13 +68,27 @@ export default function ManageRecipes() {
   const confirmDelete = async () => {
     if (recipeToDelete) {
       try {
-        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/deleteRecipe/${recipeToDelete.id}`);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("User not authenticated. Please log in.");
+          return;
+        }
+
+        await axios.delete(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/deleteRecipe/${recipeToDelete.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         setRecipes((prev) => prev.filter((r) => r.id !== recipeToDelete.id));
         setRecipeToDelete(null);
         setShowConfirm(false);
         toast.success("Recipe deleted successfully!");
       } catch (error) {
-        console.error('Failed to delete recipe:', error);
+        console.error("Failed to delete recipe:", error);
         toast.error("Failed to delete recipe. Please try again.");
       }
     }
@@ -84,9 +113,7 @@ export default function ManageRecipes() {
       )}
 
       {error && (
-        <p className="text-center text-red-500">
-          {error}
-        </p>
+        <p className="text-center text-red-500">{error}</p>
       )}
 
       {!isLoading && !error && (
@@ -122,14 +149,14 @@ export default function ManageRecipes() {
               Are you sure you want to delete "{recipeToDelete?.title}"?
             </p>
             <div className="flex justify-end space-x-4">
-              <button 
-                onClick={cancelDelete} 
+              <button
+                onClick={cancelDelete}
                 className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition"
               >
                 Cancel
               </button>
-              <button 
-                onClick={confirmDelete} 
+              <button
+                onClick={confirmDelete}
                 className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition"
               >
                 Delete
