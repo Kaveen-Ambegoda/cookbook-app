@@ -112,4 +112,4 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   );
 };
 
-export default Sidebar;A
+export default Sidebar;
