@@ -3,6 +3,7 @@ import { useState } from "react";
 import { adlam } from '@/app/utils/fonts'; 
 import { roboto } from '@/app/utils/fonts'; 
 import { abeezee } from '@/app/utils/fonts'; 
+import { useRouter } from "next/navigation";
 
 import { FcGoogle } from "react-icons/fc"; 
 import { FaFacebookF, FaApple } from 'react-icons/fa'; 
@@ -17,6 +18,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState(""); 
   const [confirmPassword, setConfirmPassword] = useState(""); 
   const [message, setMessage] = useState(""); 
+  const router = useRouter();
 
   // Form submission handler for registering the user
   const handleRegister = async (e: React.FormEvent) => {
@@ -46,6 +48,7 @@ export default function SignUpPage() {
 
       if (response.ok) {
         setMessage("User registered successfully"); 
+        router.push("/Pages/Login_Register/Login"); // Redirect to login page after successful registration
       } else {
         setMessage(data.message || "Registration failed"); 
       }
