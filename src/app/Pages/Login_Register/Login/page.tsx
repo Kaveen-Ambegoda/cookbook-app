@@ -38,14 +38,20 @@ export default function LoginPage() {
       });
 
       const data = await response.json();  //get response
+      console.log('Login response:', data);
 
       if (response.ok) {
+        console.log('Login successful, token:', data.token);
         localStorage.setItem("token", data.token);
         setMessage("Login successful");
-
+        
+        
         // Redirect to frontend dashboard or homepage
-        router.push("/");  // You can change to "/dashboard" or wherever
+         
+        router.push("/");
+
       } else {
+        console.log('Login failed:', data.message);
         setMessage(data.message || "Login failed");
       }
     } catch (error) {

@@ -56,11 +56,25 @@ const CreateRecipePage = () => {
         formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
       }
 
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      
+
+      const token = localStorage.getItem("token");
+if (!token) {
+  toast.error("You must be logged in to create a recipe.");
+  return;
+}
+
+const response = await axios.post(
+  `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`,
+  formData,
+  {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
 
       console.log("Recipe added successfully:", response.data);
       toast.success("Recipe added successfully!");
