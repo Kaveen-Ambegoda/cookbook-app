@@ -57,7 +57,7 @@ export default function ManageRecipes() {
   }, []);
 
   const handleUpdateClick = (recipe: RecipeType) => {
-    router.push(`/ManageRecipe/UpdateRecipeForm?id=${recipe.id}`);
+    router.push(`UpdateRecipeForm?id=${recipe.id}`);
   };
 
   const handleDeleteClick = (recipe: RecipeType) => {
@@ -118,7 +118,7 @@ export default function ManageRecipes() {
 
       {!isLoading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 p-4">
-          <Link href="/ManageRecipe/CreateRecipeForm">
+          <Link href="/RecipeManagement/ManageRecipe/CreateRecipeForm">
             <div className="border pt-14 pb-14 rounded-xl shadow hover:shadow-md transition bg-white flex flex-col items-center justify-center cursor-pointer">
               <div className="rounded-full w-20 h-20 bg-gray-100 flex items-center justify-center text-4xl text-gray-400">
                 +

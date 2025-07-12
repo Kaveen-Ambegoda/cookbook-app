@@ -54,7 +54,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
   const isRegisterPage = pathname?.toLowerCase().includes('/login_register/register');
 
   const buttonText = isRegisterPage ? 'Sign In' : isLoginPage ? 'Sign Up' : null;
-  const targetUrl = isRegisterPage ? '/Pages/Login_Register/Login' : isLoginPage ? '/Pages/Login_Register/Register' : '#';
+  const targetUrl = isRegisterPage ? '/Login_Register/Login' : isLoginPage ? '/Login_Register/Register' : '#';
 
   const ButtonClick = () => {
     router.push(targetUrl);
@@ -135,7 +135,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      router.push("/Pages/User/Profile");
+                      router.push("/User/Profile");
                       setDropdownOpen(false);
                     }}
                   >
@@ -148,7 +148,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                       setUsername(null);
                       toast.success("Logged out!");
                       setDropdownOpen(false);
-                      router.replace("/Pages/Login_Register/Login");
+                      router.replace("/Login_Register/Login");
                     }}
                   >
                     Log Out
@@ -159,7 +159,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      router.push("/Pages/Login_Register/Login");
+                      router.push("/Login_Register/Login");
                       setDropdownOpen(false);
                     }}
                   >
@@ -168,7 +168,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      router.push("/Pages/Login_Register/Register");
+                      router.push("/Login_Register/Register");
                       setDropdownOpen(false);
                     }}
                   >
