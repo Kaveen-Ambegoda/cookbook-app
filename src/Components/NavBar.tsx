@@ -4,65 +4,32 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FaSearch, FaBars, FaBell, FaUserCircle } from 'react-icons/fa';
 import { inter } from '@/app/utils/fonts';
 import Image from 'next/image';
-import { jwtDecode } from 'jwt-decode';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/app/context/authContext';
 
 interface NavBarProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-interface JwtPayload {
-  sub: string;
-}
-
 export default function Navbar({ setIsOpen }: NavBarProps) {
   const pathname = usePathname();
   const router = useRouter();
-
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Run on route change: check token and set user
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setUsername(null);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const decoded = jwtDecode<JwtPayload>(token);
-      console.log("Decoded:", decoded);
-      setUsername(decoded.sub);
-    } catch (err) {
-      console.error("Token decode failed", err);
-      localStorage.removeItem("token");
-      setUsername(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pathname]);
+  const { isAuthenticated, username, logout } = useAuth();
 
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
-
+  console.log("Auth status:", isAuthenticated, username);
+  
   const isLoginPage = pathname?.toLowerCase().includes('/login_register/login');
   const isRegisterPage = pathname?.toLowerCase().includes('/login_register/register');
 
   const buttonText = isRegisterPage ? 'Sign In' : isLoginPage ? 'Sign Up' : null;
-  const targetUrl = isRegisterPage ? '/Pages/Login_Register/Login' : isLoginPage ? '/Pages/Login_Register/Register' : '#';
+  const targetUrl = isRegisterPage ? '/Login_Register/Login' : isLoginPage ? '/Login_Register/Register' : '#';
 
-  const ButtonClick = () => {
-    router.push(targetUrl);
-  };
+  const ButtonClick = () => router.push(targetUrl);
 
-  // Optional: prevent flicker during loading
-  if (isLoading) return null;
-
-  // === Navbar for Login/Register Pages ===
   if (isLoginPage || isRegisterPage) {
     return (
       <nav className="bg-[#FFD476] w-full lg:h-[10vh] flex items-center px-6 relative z-20">
@@ -96,8 +63,8 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
     );
   }
 
-  // === Navbar for All Other Pages ===
   return (
+    
     <nav className="bg-yellow-400 px-6 py-3 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50">
       <div className="flex items-center space-x-3">
         <button className="text-gray-800 text-xl" onClick={() => setIsOpen((prev) => !prev)}>
@@ -136,13 +103,13 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md z-50 text-sm">
-              {username ? (
+              {isAuthenticated && username ? (
                 <div className="py-2">
                   <div className="px-4 py-2 text-gray-800 border-b">{username}</div>
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      router.push("/Pages/User/Profile");
+                      router.push("/User/Profile");
                       setDropdownOpen(false);
                     }}
                   >
@@ -151,11 +118,10 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      localStorage.removeItem("token");
-                      setUsername(null);
+                      logout();
                       toast.success("Logged out!");
                       setDropdownOpen(false);
-                      router.replace("/Pages/Login_Register/Login");
+                      router.replace("/Login_Register/Login");
                     }}
                   >
                     Log Out
@@ -166,7 +132,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      router.push("/Pages/Login_Register/Login");
+                      router.push("/Login_Register/Login");
                       setDropdownOpen(false);
                     }}
                   >
@@ -175,7 +141,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {
-                      router.push("/Pages/Login_Register/Register");
+                      router.push("/Login_Register/Register");
                       setDropdownOpen(false);
                     }}
                   >

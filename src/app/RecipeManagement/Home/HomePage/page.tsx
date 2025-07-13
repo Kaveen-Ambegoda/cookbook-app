@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import HomeRecipeCard from "../HomeRecipeCard/page";
-import HomeNavBar from "@/app/Components/HomeNavBar";
+import HomeNavBar from "@/Components/HomeNavBar";
 import Welcome from "../Welcome/page";
-import Footer from "@/app/Components/Footer";
+import Footer from "@/Components/Footer";
 
 interface Recipe {
   id: number;

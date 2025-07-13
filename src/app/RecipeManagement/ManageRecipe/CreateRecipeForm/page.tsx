@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import axios from "axios";
+import axios from 'axios';
+import API from "@/app/utils/axiosInstance";
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
@@ -37,8 +38,6 @@ const CreateRecipePage = () => {
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
 
   const onSubmit = async (data: RecipeFormData) => {
-    console.log("Form submitted:", data);
-
     try {
       const formData = new FormData();
       formData.append("title", data.title);
@@ -56,32 +55,21 @@ const CreateRecipePage = () => {
         formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
       }
 
-      
+      const response = await API.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
 
-      const token = localStorage.getItem("token");
-if (!token) {
-  toast.error("You must be logged in to create a recipe.");
-  return;
-}
-
-const response = await axios.post(
-  `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`,
-  formData,
-  {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
-
-
-      console.log("Recipe added successfully:", response.data);
       toast.success("Recipe added successfully!");
       reset();
       setStep(0);
       setTimeout(() => {
-        router.replace('/Pages/RecipeManagement/ManageRecipe/ManageRecipe');
+        router.replace('/RecipeManagement/ManageRecipe/ManageRecipe');
       }, 500);
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
@@ -244,8 +232,7 @@ const response = await axios.post(
               <button
                 type="button"
                 onClick={prevStep}
-                className={`px-6 py-2 border rounded text-gray-600 hover:bg-gray-100 ${step === 0 ? "invisible" : ""
-                  }`}
+                className={`px-6 py-2 border rounded text-gray-600 hover:bg-gray-100 ${step === 0 ? "invisible" : ""}`}
               >
                 Back
               </button>
