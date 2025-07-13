@@ -3,6 +3,7 @@
 
 import axios from "axios";
 import { Link } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 
 // Create or import axiosInstance
@@ -31,6 +32,7 @@ interface JoinFormProps {
 }
 
 const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
+  const router = useRouter();
   
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -86,6 +88,9 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     }
   };
 
+  const handleRecipeSubmit = () => {
+    router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage`);
+  };
   // After choose category go to the submit recipe page
   if (submitSuccess) {
     return (
@@ -95,11 +100,104 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
         <p className="text-gray-600">
           We've received your application for the "{challengeId}" at {formData.challengeCategory} Category.
         </p>
-        <a href={`/RecipeChallenge/JoinChallenge/SubmitRecipe/${encodeURIComponent(challengeId)}`}
-        className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block">
-        
-        Submit Your Recipe Now
-        </a>
+
+        <div className="mt-6 mb-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Christmas Cookies Challenge</h3>
+          <p className="text-gray-600 mb-4">
+            "Celebrate the joy of Christmas with your favorite recipes! Whether it is a savory feast or a sweet cake, 
+            we want to see your most creative and festive dishes."
+          </p>
+          
+          <div className="border-t border-b border-gray-200 py-4 my-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium text-gray-700">Registration:</span>
+              <span>Dec 1-20, 2024</span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium text-gray-700">Judging:</span>
+              <span>Dec 21-23, 2024</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-gray-700">Winners Announced:</span>
+              <span>Dec 24, 2024</span>
+            </div>
+          </div>
+          
+          <div className="text-left">
+            <h4 className="font-semibold text-gray-800 mb-2">Requirements:</h4>
+            <ul className="list-disc pl-5 space-y-1 text-gray-600">
+              <li>Use at least 3 Christmas-themed ingredients</li>
+              <li>Submit a high-quality photo of your dish along with a brief recipe description</li>
+              <li>Optional: Add a festive story about why this dish is special to you</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-8 max-w-xl mx-auto bg-orange-50 p-6 rounded-lg shadow-lg border-2 border-orange-200">
+          <h3 className="text-lg font-semibold mb-4 text-orange-700">Recipe Submission Form</h3>
+
+          <form className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Display Name</label>
+              <input
+                type="text"
+                placeholder="Sandali Sathsarani"
+                className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Recipe Name</label>
+              <input
+                type="text"
+                placeholder="GingerMan GingerMan"
+                className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Ingredients</label>
+              <input
+                type="text"
+                placeholder="Ingredient 1"
+                className="mt-1 w-full mb-2 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              />
+              <input
+                type="text"
+                placeholder="Ingredient 2"
+                className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Recipe Description</label>
+              <textarea
+                placeholder="Type your recipe description here..."
+                className="mt-1 w-full border border-dotted border-2 border-blue-500 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                rows={4}
+              ></textarea>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Upload a Picture</label>
+              <input
+                type="file"
+                className="mt-1 w-full text-sm border border-gray-300 rounded-md shadow-sm py-2 px-3"
+              />
+              <p className="text-xs text-gray-500 mt-1">Maximum 5MB</p>
+            </div>
+          </form>
+        </div>
+
+
+         <button
+          onClick={handleRecipeSubmit}
+          className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 mt-10 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block"
+        >
+          Submit Your Recipe Now
+        </button>
+
+
       </div>
     );
   }
