@@ -19,7 +19,7 @@ const MenuPanel = ({ onHideMenuPanel }: MenuPanelProps) => {
         i === 0 ? (
           <Link
             key={i}
-            href="/Pages/RecipeManagement/ManageRecipe/ManageRecipe"
+            href="/RecipeManagement/ManageRecipe/ManageRecipe"
             className="mb-6 font-bold block hover:bg-yellow-300 cursor-pointer rounded p-2"
             onClick={() => {
               if (onHideMenuPanel) {

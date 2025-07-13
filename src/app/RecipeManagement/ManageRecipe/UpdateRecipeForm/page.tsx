@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import axios from "axios";
+import axios from 'axios';
+import API from "@/app/utils/axiosInstance";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from 'react-hot-toast';
 
@@ -43,7 +44,7 @@ const UpdateRecipePage = () => {
       console.log("Fetching recipe with ID:", recipeId); // Log the recipeId to ensure it's correct
       const fetchRecipeData = async () => {
         try {
-          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${recipeId}`);
+          const response = await API.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${recipeId}`);
           console.log("Fetched recipe data:", response.data); // Log the fetched recipe data
           setRecipeData(response.data);
           reset(response.data); // Populate the form with fetched data
@@ -60,61 +61,50 @@ const UpdateRecipePage = () => {
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
 
   const onSubmit = async (data: RecipeFormData) => {
-    console.log("Form updated:", data); // Log the form data on submit
-    try {
-      const formData = new FormData();
-      formData.append("title", data.title);
-      formData.append("category", data.category);
-      formData.append("cookingTime", data.cookingTime.toString());
-      formData.append("portion", data.portion.toString());
-      formData.append("ingredients", data.ingredients);
-      formData.append("instructions", data.instructions);
-      formData.append("calories", data.calories.toString());
-      formData.append("protein", data.protein.toString());
-      formData.append("fat", data.fat.toString());
-      formData.append("carbs", data.carbs.toString());
+  try {
+    const formData = new FormData();
+    formData.append("title", data.title);
+    formData.append("category", data.category);
+    formData.append("cookingTime", data.cookingTime.toString());
+    formData.append("portion", data.portion.toString());
+    formData.append("ingredients", data.ingredients);
+    formData.append("instructions", data.instructions);
+    formData.append("calories", data.calories.toString());
+    formData.append("protein", data.protein.toString());
+    formData.append("fat", data.fat.toString());
+    formData.append("carbs", data.carbs.toString());
 
-      if (data.imageFile && data.imageFile.length > 0) {
-        formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
-      }
-
-      const token = localStorage.getItem("token");
-      
-        if (!token) {
-          toast.error("You must be logged in to update a recipe.");
-          return;
-        }
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`, // ✅ Include JWT token
-          },
-        }
-      );
-      console.log("Recipe updated successfully:", response.data);
-      toast.success("Recipe updated successfully!");
-
-      reset();
-      setStep(0); // Reset to the first step after submission
-
-      setTimeout(() => {
-        router.replace('/Pages/RecipeManagement/ManageRecipe/ManageRecipe'); // Navigate to the RecipeManage page
-      }, 500);
-      
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        console.error("Axios error:", error.response?.data || error.message);
-        toast.error("Failed to update recipe: " + (error.response?.data?.message || error.message));
-      } else {
-        console.error("Unexpected error:", error);
-        toast.error("An unexpected error occurred.");
-      }
+    if (data.imageFile && data.imageFile.length > 0) {
+      formData.append("image", data.imageFile[0]); // backend must accept this as IFormFile
     }
-  };
+
+    const response = await API.put(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    toast.success("Recipe updated successfully!");
+    reset();
+    setStep(0);
+
+    setTimeout(() => {
+      router.replace('/RecipeManagement/ManageRecipe/ManageRecipe');
+    }, 500);
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error:", error.response?.data || error.message);
+      toast.error("Failed to update recipe: " + (error.response?.data?.message || error.message));
+    } else {
+      console.error("Unexpected error:", error);
+      toast.error("An unexpected error occurred.");
+    }
+  }
+};
 
   if (!isClient) return null; // Avoid rendering anything before client-side hydration
   if (!recipeData) return <p>Loading recipe data...</p>; // Show loading message until recipe data is fetched

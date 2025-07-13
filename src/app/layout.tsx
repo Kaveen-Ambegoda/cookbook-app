@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import Sidebar from "./Components/SideBar";
-import Navbar from "./Components/NavBar";
+import Sidebar from "@/Components/SideBar";
+import Navbar from "@/Components/NavBar";
+import { AuthProvider } from './context/authContext';
 
 export default function RootLayout({
   children,
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen">
+        <AuthProvider>
         <Toaster position="bottom-right" reverseOrder={false} />
 
         {isAuthPage ? (
@@ -44,6 +46,7 @@ export default function RootLayout({
             </div>
           </>
         )}
+        </AuthProvider>
       </body>
     </html>
   );
