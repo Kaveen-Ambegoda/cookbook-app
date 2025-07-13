@@ -95,7 +95,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
         <p className="text-gray-600">
           We've received your application for the "{challengeId}" at {formData.challengeCategory} Category.
         </p>
-        <a href={`/Pages/RecipeChallenge/JoinChallenge/SubmitRecipe/${encodeURIComponent(challengeId)}`}
+        <a href={`/RecipeChallenge/JoinChallenge/SubmitRecipe/${encodeURIComponent(challengeId)}`}
         className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block">
         
         Submit Your Recipe Now

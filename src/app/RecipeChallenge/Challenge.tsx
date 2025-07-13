@@ -78,7 +78,7 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
                   </button>
                   
                   <Link
-                    href={`/Pages/RecipeChallenge/JoinChallengePage/${encodeURIComponent(challenge.title)}`}
+                    href={`/RecipeChallenge/JoinChallengePage/${encodeURIComponent(challenge.title)}`}
                     className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium w-full sm:w-auto text-center shadow-md hover:shadow-lg">
                     Join Challenge
                   </Link>
