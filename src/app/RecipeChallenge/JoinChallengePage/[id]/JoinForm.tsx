@@ -1,9 +1,11 @@
-
 "use client";
 
 import axios from "axios";
 import { Link } from "lucide-react";
 import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { getChallengeById } from "../../../../utils/challengeUtils";
+import { ChallengeType } from "../../ChallengeCard";
 
 
 // Create or import axiosInstance
@@ -13,9 +15,6 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 });
-import React, { useState } from "react";
-
- // Adjust the import path as necessary
 
 interface FormData {
   fullName: string;
@@ -23,29 +22,32 @@ interface FormData {
   challengeCategory: string;
   reasonForChoosing: string;
   termsAccepted: boolean;
-  
 }
 
 interface JoinFormProps {
   challengeId: string;
-  
 }
 
 const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   const router = useRouter();
+  const [challenge, setChallenge] = useState<ChallengeType | null>(null);
   
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
-    challengeCategory: "", // Default to Beginner
+    challengeCategory: "",
     reasonForChoosing: "",
     termsAccepted: false,
- 
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const challengeData = getChallengeById(challengeId);
+    setChallenge(challengeData);
+  }, [challengeId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -71,7 +73,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           ChallengeCategory: formData.challengeCategory,
           ReasonForChoosing: formData.reasonForChoosing,
           TermsAccepted: formData.termsAccepted,
-          ChallengeName: challengeId,
+          ChallengeName: challenge?.title || challengeId,
       });
 
       if (response.status === 200) {
@@ -91,6 +93,15 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   const handleRecipeSubmit = () => {
     router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage`);
   };
+
+  if (!challenge) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-600">Challenge not found.</p>
+      </div>
+    );
+  }
+
   // After choose category go to the submit recipe page
   if (submitSuccess) {
     return (
@@ -98,37 +109,36 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
         <div className="text-green-600 text-2xl mb-4">✓</div>
         <h2 className="text-xl font-semibold mb-2">Thank you for joining the challenge!</h2>
         <p className="text-gray-600">
-          We've received your application for the "{challengeId}" at {formData.challengeCategory} Category.
+          We've received your application for the "{challenge.title}" at {formData.challengeCategory} Category.
         </p>
 
         <div className="mt-6 mb-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Christmas Cookies Challenge</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">{challenge.title}</h3>
           <p className="text-gray-600 mb-4">
-            "Celebrate the joy of Christmas with your favorite recipes! Whether it is a savory feast or a sweet cake, 
-            we want to see your most creative and festive dishes."
+            {challenge.description}
           </p>
           
           <div className="border-t border-b border-gray-200 py-4 my-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium text-gray-700">Registration:</span>
-              <span>Dec 1-20, 2024</span>
+              <span>{challenge.timeline.registration}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium text-gray-700">Judging:</span>
-              <span>Dec 21-23, 2024</span>
+              <span>{challenge.timeline.judging}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-700">Winners Announced:</span>
-              <span>Dec 24, 2024</span>
+              <span>{challenge.timeline.winnersAnnounced}</span>
             </div>
           </div>
           
           <div className="text-left">
             <h4 className="font-semibold text-gray-800 mb-2">Requirements:</h4>
             <ul className="list-disc pl-5 space-y-1 text-gray-600">
-              <li>Use at least 3 Christmas-themed ingredients</li>
-              <li>Submit a high-quality photo of your dish along with a brief recipe description</li>
-              <li>Optional: Add a festive story about why this dish is special to you</li>
+              {challenge.requirements.map((requirement, index) => (
+                <li key={index}>{requirement}</li>
+              ))}
             </ul>
           </div>
         </div>
@@ -141,7 +151,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
               <label className="block text-sm font-medium text-gray-700">Display Name</label>
               <input
                 type="text"
-                placeholder="Sandali Sathsarani"
+                placeholder="Enter your display name"
                 className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
@@ -150,7 +160,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
               <label className="block text-sm font-medium text-gray-700">Recipe Name</label>
               <input
                 type="text"
-                placeholder="GingerMan GingerMan"
+                placeholder="Enter your recipe name"
                 className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
@@ -189,15 +199,12 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           </form>
         </div>
 
-
-         <button
+        <button
           onClick={handleRecipeSubmit}
           className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 mt-10 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block"
         >
           Submit Your Recipe Now
         </button>
-
-
       </div>
     );
   }
@@ -271,9 +278,11 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           onChange={handleChange}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         >
-          <option value="Category" >Category</option>
+          <option value="">Select Category</option>
           <option value="Dessert">Dessert</option>
           <option value="Main Dish">Main Dish</option>
+          <option value="Appetizer">Appetizer</option>
+          <option value="Beverage">Beverage</option>
         </select>
       </div>
 
@@ -285,7 +294,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           id="reasonForChoosing"
           name="reasonForChoosing"
           required
-          maxLength={50}
+          maxLength={200}
           value={formData.reasonForChoosing}
           onChange={handleChange}
           rows={3}
