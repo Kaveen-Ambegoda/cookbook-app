@@ -1,3 +1,4 @@
+"use client";
 // components/JoinChallengePage.tsx
 import React from "react";
 import JoinForm from "./JoinForm";
