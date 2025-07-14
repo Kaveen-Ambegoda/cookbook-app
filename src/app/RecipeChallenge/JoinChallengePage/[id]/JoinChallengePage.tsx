@@ -9,7 +9,9 @@ interface JoinChallengePageProps {
 }
 
 function JoinChallengePage({ params }: JoinChallengePageProps) {
-  const challengeTitle = decodeURIComponent(params.id);
+  // Add null check and provide fallback
+  const challengeTitle = params?.id ? decodeURIComponent(params.id) : "Unknown Challenge";
+  
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
