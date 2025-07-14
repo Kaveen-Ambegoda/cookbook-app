@@ -1,4 +1,4 @@
-'use client'; // This ensures it's a client component
+'use client'; 
 
 import React, { useState } from "react";
 import {
@@ -20,7 +20,7 @@ const iconData = [
   { icon: FaHome, label: "Home", href: "/" },
   { icon: FaUtensils, label: "Manage Recipe" },
   { icon: FaClipboardList, label: "Clipboard List" },
-  { icon: FaHeart, label: "Favorites" },
+  { icon: FaHeart, label: "Favorites", href: "/RecipeManagement/FavoritePage" },
   { icon: FaCog, label: "Settings" },
   { icon: FaSignOutAlt, label: "Logout" },
 ];

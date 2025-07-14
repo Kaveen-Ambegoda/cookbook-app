@@ -7,7 +7,7 @@ import axios from "axios";
 interface Recipe {
   id: number;
   title: string;
-  imageUrl: string;
+  image: string;
   cookingTime: number;
   portion: number;
   ingredients?: string | string[];
@@ -77,9 +77,9 @@ const ViewRecipe: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-8 items-center md:items-stretch">
           <div className="w-full md:w-1/2 flex flex-col items-center">
             <img
-              src={recipe.imageUrl || "/image/default.jpg"}
+              src={recipe.image || "/image/default.jpg"}
               alt={recipe.title}
-              className="rounded-lg shadow-md max-w-full h-auto"
+              className="w-[250px] h-[200px] object-cover rounded-lg shadow-md"
             />
             <div className="mt-6 flex gap-4">
               <button className="bg-red-400 text-white p-2 px-4 rounded-full w-20 hover:bg-red-500 transition">
@@ -115,7 +115,7 @@ const ViewRecipe: React.FC = () => {
 
       <div className="mt-10">
         <h2 className="text-xl font-semibold mb-2">Ingredients:</h2>
-        <ul className="list-disc list-inside space-y-1 text-gray-800">
+        <ul className="space-y-1 text-gray-800">
           {Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 ? (
             recipe.ingredients.map((ingredient, index) => (
               <li key={index}>{ingredient}</li>
@@ -128,7 +128,7 @@ const ViewRecipe: React.FC = () => {
 
       <div className="mt-10">
         <h2 className="text-xl font-semibold mb-2">Instructions:</h2>
-        <ol className="list-decimal list-inside space-y-2 text-gray-800">
+        <ol className="space-y-2 text-gray-800">
           {Array.isArray(recipe.instructions) && recipe.instructions.length > 0 ? (
             recipe.instructions.map((step, index) => (
               <li key={index}>{step}</li>

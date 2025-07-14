@@ -23,38 +23,44 @@ export default function ManageRecipes() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<RecipeType | null>(null);
 
-  useEffect(() => {
-    const fetchRecipes = async () => {
-      setIsLoading(true);
-      setError(null);
+ useEffect(() => {
+  const fetchRecipes = async () => {
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("User not authenticated. Please log in.");
-          return;
-        }
-
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/myRecipes`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        setRecipes(response.data);
-      } catch (error) {
-        console.error("Error fetching recipes:", error);
-        setError("Failed to load recipes. Please try again.");
-      } finally {
-        setIsLoading(false);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("To see the recipes, please sign in.");
+        toast.error("User not authenticated. Please log in.");
+        return;
       }
-    };
 
-    fetchRecipes();
-  }, []);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/myRecipes`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setRecipes(response.data);
+    } catch (error: any) {
+      console.error("Error fetching recipes:", error);
+      if (error.response?.status === 401) {
+        setError("To see the recipes, please sign in.");
+        toast.error("User not authenticated. Please log in.");
+      } else {
+        setError("Failed to load recipes. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchRecipes();
+}, []);
 
   const handleUpdateClick = (recipe: RecipeType) => {
     router.push(`UpdateRecipeForm?id=${recipe.id}`);
@@ -100,45 +106,46 @@ export default function ManageRecipes() {
   };
 
   return (
-    <div className="pt-16 pl-18 p-4">
-      <div>
-        <h2 className="text-2xl font-semibold mb-4 text-green-800">Manage your Recipes</h2>
-      </div>
-
-      {/* Loading and Error Messages */}
-      {isLoading && (
-        <p className="text-center text-gray-500 animate-pulse">
-          Loading recipes...
-        </p>
-      )}
-
-      {error && (
-        <p className="text-center text-red-500">{error}</p>
-      )}
-
-      {!isLoading && !error && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 p-4">
-          <Link href="/RecipeManagement/ManageRecipe/CreateRecipeForm">
-            <div className="border pt-14 pb-14 rounded-xl shadow hover:shadow-md transition bg-white flex flex-col items-center justify-center cursor-pointer">
-              <div className="rounded-full w-20 h-20 bg-gray-100 flex items-center justify-center text-4xl text-gray-400">
-                +
-              </div>
-              <h3 className="text-center mt-3 font-semibold text-lg">
-                Add New
-              </h3>
-            </div>
-          </Link>
-
-          {recipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              onUpdate={() => handleUpdateClick(recipe)}
-              onDelete={() => handleDeleteClick(recipe)}
-            />
-          ))}
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-1 pt-16 pl-18 p-4">
+        <div>
+          <h2 className="text-2xl font-semibold mb-4 text-green-800">Manage your Recipes</h2>
         </div>
-      )}
+
+        {isLoading && (
+          <p className="text-center text-gray-500 animate-pulse">
+            Loading recipes...
+          </p>
+        )}
+
+        {error && (
+          <p className="text-center text-red-500">{error}</p>
+        )}
+
+        {!isLoading && !error && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 p-4">
+            <Link href="/RecipeManagement/ManageRecipe/CreateRecipeForm">
+              <div className="border pt-14 pb-14 rounded-xl shadow hover:shadow-md transition bg-white flex flex-col items-center justify-center cursor-pointer">
+                <div className="rounded-full w-20 h-20 bg-gray-100 flex items-center justify-center text-4xl text-gray-400">
+                  +
+                </div>
+                <h3 className="text-center mt-3 font-semibold text-lg">
+                  Add New
+                </h3>
+              </div>
+            </Link>
+
+            {recipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onUpdate={() => handleUpdateClick(recipe)}
+                onDelete={() => handleDeleteClick(recipe)}
+              />
+            ))}
+          </div>
+        )}
+      </main>
 
       {/* Confirmation Modal */}
       {showConfirm && (
