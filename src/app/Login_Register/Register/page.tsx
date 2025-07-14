@@ -131,7 +131,7 @@ export default function SignUpPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            className={`mt-2 w-[26rem] rounded-md bg-[#F25019] py-2 text-white active:bg-[#C93E0F] cursor-pointer transition-colors  transition-colors duration-400 ease-in-out  ${roboto.className}`}>
+            className={`mt-2 w-[26rem] rounded-md bg-[#F25019] py-2 text-white active:bg-[#C93E0F] cursor-pointer  transition-colors duration-400 ease-in-out  ${roboto.className}`}>
             Sign Up
           </button>
 
