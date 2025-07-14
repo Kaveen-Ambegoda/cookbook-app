@@ -13,7 +13,7 @@ export const challenges = [
     img: "/image/1.jpg",
     description: "Test your culinary skills with mystery ingredients! Create something amazing with whatever you're given.",
     requirements: [
-      "Use only the provided mystery ingredients",
+      "Use only 3 mystery ingredients",
       "Submit a high-quality photo of your dish along with a brief recipe description",
       "Optional: Share your creative process and inspiration"
     ],
@@ -32,7 +32,7 @@ export const challenges = [
     img: "/image/2.jpg",
     description: "Celebrate the joy of Christmas with your favorite recipes! Whether it is a savory feast or a sweet cake, we want to see your most creative and festive dishes.",
     requirements: [
-      "Use at least 3 Christmas-themed ingredients",
+      "Use at least 4 Christmas-themed ingredients",
       "Submit a high-quality photo of your dish along with a brief recipe description",
       "Optional: Add a festive story about why this dish is special to you"
     ],
@@ -70,7 +70,7 @@ export const challenges = [
     img: "/image/4.jpg",
     description: "Transform your leftovers into culinary masterpieces! Show us how you can make yesterday's meal into today's gourmet experience.",
     requirements: [
-      "Use at least 50% leftover ingredients",
+      "Use at least 2 and maximum is 5 leftover ingredients",
       "Submit a high-quality photo of your dish along with a brief recipe description",
       "Optional: Share before and after photos of your transformation"
     ],

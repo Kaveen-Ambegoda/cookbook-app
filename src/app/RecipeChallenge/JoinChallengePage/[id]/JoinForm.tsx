@@ -7,7 +7,6 @@ import React, { useState, useEffect } from "react";
 import { getChallengeById } from "../../../../utils/challengeUtils";
 import { ChallengeType } from "../../ChallengeCard";
 
-
 // Create or import axiosInstance
 const axiosInstance = axios.create({
   baseURL: "https://localhost:7205", // Replace with your API base URL
@@ -22,6 +21,14 @@ interface FormData {
   challengeCategory: string;
   reasonForChoosing: string;
   termsAccepted: boolean;
+}
+
+interface RecipeData {
+  displayName: string;
+  recipeName: string;
+  ingredients: string[];
+  recipeDescription: string;
+  recipeImage: File | null;
 }
 
 interface JoinFormProps {
@@ -40,13 +47,58 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     termsAccepted: false,
   });
 
+  const [recipeData, setRecipeData] = useState<RecipeData>({
+    displayName: "",
+    recipeName: "",
+    ingredients: [""],
+    recipeDescription: "",
+    recipeImage: null,
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Function to get ingredient limits from challenge requirements
+  const getIngredientLimits = (challenge: ChallengeType) => {
+    const requirement = challenge.requirements.find(req => 
+      req.toLowerCase().includes('ingredient')
+    );
+    
+    if (!requirement) return { min: 1, max: 10 }; // Default limits
+    
+    const text = requirement.toLowerCase();
+    
+    // Extract numbers from requirement text
+    const numbers = text.match(/\d+/g)?.map(Number) || [];
+    
+    if (text.includes('exactly')) {
+      const exact = numbers[0] || 5;
+      return { min: exact, max: exact };
+    } else if (text.includes('at least') && text.includes('maximum')) {
+      return { min: numbers[0] || 1, max: numbers[1] || 10 };
+    } else if (text.includes('at least')) {
+      return { min: numbers[0] || 1, max: 10 };
+    } else if (text.includes('maximum') || text.includes('max')) {
+      return { min: 1, max: numbers[0] || 10 };
+    } else if (text.includes('only')) {
+      return { min: numbers[0] || 3, max: numbers[0] || 3 };
+    }
+    
+    return { min: 1, max: 10 };
+  };
+
   useEffect(() => {
     const challengeData = getChallengeById(challengeId);
     setChallenge(challengeData);
+    
+    if (challengeData) {
+      const limits = getIngredientLimits(challengeData);
+      setRecipeData(prev => ({
+        ...prev,
+        ingredients: Array(limits.min).fill("")
+      }));
+    }
   }, [challengeId]);
 
   const handleChange = (
@@ -59,6 +111,58 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+  };
+
+  const handleRecipeChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    
+    if (name === "recipeImage" && files) {
+      setRecipeData(prev => ({
+        ...prev,
+        recipeImage: files[0]
+      }));
+    } else {
+      setRecipeData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleIngredientChange = (index: number, value: string) => {
+    const newIngredients = [...recipeData.ingredients];
+    newIngredients[index] = value;
+    setRecipeData(prev => ({
+      ...prev,
+      ingredients: newIngredients
+    }));
+  };
+
+  const addIngredient = () => {
+    if (!challenge) return;
+    
+    const limits = getIngredientLimits(challenge);
+    if (recipeData.ingredients.length < limits.max) {
+      setRecipeData(prev => ({
+        ...prev,
+        ingredients: [...prev.ingredients, ""]
+      }));
+    }
+  };
+
+  const removeIngredient = (index: number) => {
+    if (!challenge) return;
+    
+    const limits = getIngredientLimits(challenge);
+    if (recipeData.ingredients.length > limits.min) {
+      const newIngredients = recipeData.ingredients.filter((_, i) => i !== index);
+      setRecipeData(prev => ({
+        ...prev,
+        ingredients: newIngredients
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,6 +205,8 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
       </div>
     );
   }
+
+  const ingredientLimits = getIngredientLimits(challenge);
 
   // After choose category go to the submit recipe page
   if (submitSuccess) {
@@ -151,6 +257,9 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
               <label className="block text-sm font-medium text-gray-700">Display Name</label>
               <input
                 type="text"
+                name="displayName"
+                value={recipeData.displayName}
+                onChange={handleRecipeChange}
                 placeholder="Enter your display name"
                 className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               />
@@ -160,30 +269,67 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
               <label className="block text-sm font-medium text-gray-700">Recipe Name</label>
               <input
                 type="text"
+                name="recipeName"
+                value={recipeData.recipeName}
+                onChange={handleRecipeChange}
                 placeholder="Enter your recipe name"
                 className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Ingredients</label>
-              <input
-                type="text"
-                placeholder="Ingredient 1"
-                className="mt-1 w-full mb-2 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              />
-              <input
-                type="text"
-                placeholder="Ingredient 2"
-                className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              />
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Ingredients ({recipeData.ingredients.length}/{ingredientLimits.max})
+                </label>
+                <div className="text-xs text-gray-500">
+                  {ingredientLimits.min === ingredientLimits.max 
+                    ? `Exactly ${ingredientLimits.min} ingredients required`
+                    : `${ingredientLimits.min}-${ingredientLimits.max} ingredients allowed`
+                  }
+                </div>
+              </div>
+              
+              {recipeData.ingredients.map((ingredient, index) => (
+                <div key={index} className="flex items-center mb-2">
+                  <input
+                    type="text"
+                    value={ingredient}
+                    onChange={(e) => handleIngredientChange(index, e.target.value)}
+                    placeholder={`Ingredient ${index + 1}`}
+                    className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  />
+                  {recipeData.ingredients.length > ingredientLimits.min && (
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(index)}
+                      className="ml-2 text-red-500 hover:text-red-700 px-2 py-1 rounded"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              {recipeData.ingredients.length < ingredientLimits.max && (
+                <button
+                  type="button"
+                  onClick={addIngredient}
+                  className="mt-2 text-orange-500 hover:text-orange-700 text-sm font-medium"
+                >
+                  + Add Ingredient
+                </button>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Recipe Description</label>
               <textarea
+                name="recipeDescription"
+                value={recipeData.recipeDescription}
+                onChange={handleRecipeChange}
                 placeholder="Type your recipe description here..."
-                className="mt-1 w-full border border-dotted border-2 border-blue-500 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                 rows={4}
               ></textarea>
             </div>
@@ -192,6 +338,9 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
               <label className="block text-sm font-medium text-gray-700">Upload a Picture</label>
               <input
                 type="file"
+                name="recipeImage"
+                onChange={handleRecipeChange}
+                accept="image/*"
                 className="mt-1 w-full text-sm border border-gray-300 rounded-md shadow-sm py-2 px-3"
               />
               <p className="text-xs text-gray-500 mt-1">Maximum 5MB</p>
