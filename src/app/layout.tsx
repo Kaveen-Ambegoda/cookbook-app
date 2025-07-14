@@ -1,39 +1,52 @@
 "use client";
-
+import React, { useState } from "react";
+import { usePathname } from "next/navigation";
 import "./globals.css";
-import { useState } from "react";
-import Sidebar from "./Components/SideBar";
-import Navbar from "./Components/NavBar";
+import { Toaster } from "react-hot-toast";
+import Sidebar from "@/Components/SideBar";
+import Navbar from "@/Components/NavBar";
+import { AuthProvider } from './context/authContext';
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const [isOpen, setIsOpen] = useState(false);
+}) {
+  const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const isAuthPage =
+    pathname?.toLowerCase().includes("/login_register/login") ||
+    pathname?.toLowerCase().includes("/login_register/register");
 
   return (
     <html lang="en">
-      <body className="flex flex-col h-screen bg-gray-100">
-        {/* Navbar */}
-        <div className="relative z-30">
-          <Navbar setIsOpen={setIsOpen} />
-        </div>
+      <body className="flex flex-col min-h-screen">
+        <AuthProvider>
+        <Toaster position="bottom-right" reverseOrder={false} />
 
-        {/* Main content area */}
-        <div className="flex flex-1 relative">
-          {/* Sidebar */}
-          <Sidebar isOpen={isOpen} />
-          
-          {/* Main content */}
-          <main 
-            className={`flex-1 transition-all duration-300 ${
-              isOpen ? 'lg:ml-64' : 'ml-16'
-            }`}
-          >
-            {children}
-          </main>
-        </div>
+        {isAuthPage ? (
+          <>
+            {/* Login/Register layout: only Navbar */}
+            <Navbar setIsOpen={() => {}} />
+            <main className="flex-1">{children}</main>
+          </>
+        ) : (
+          <>
+            <Navbar setIsOpen={setIsSidebarOpen} />
+            <div className="flex flex-1">
+              <Sidebar isOpen={isSidebarOpen} />
+              <main
+                className={`flex-1 p-4 transition-all duration-300 ${
+                  isSidebarOpen ? "pl-16" : "pl-4"
+                }`}
+              >
+                {children}
+              </main>
+            </div>
+          </>
+        )}
+        </AuthProvider>
       </body>
     </html>
   );

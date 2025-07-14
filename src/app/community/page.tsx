@@ -1,4 +1,4 @@
-import CommunityForum from "../Pages/CommunityForm/components/CommunityForum";
+import CommunityForum from "../CommunityForm/components/CommunityForum";
 
 export default function CommunityPage() {
   return (

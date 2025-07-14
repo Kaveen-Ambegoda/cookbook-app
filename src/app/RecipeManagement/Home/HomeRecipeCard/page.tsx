@@ -65,10 +65,9 @@ const Recipe: React.FC<RecipeProps> = ({ recipe }) => {
       <div className="mt-5 text-center">
         <Link
 
-          href={`/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`}
-
+          href={`/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`}>
           className="text-white bg-green-700 px-2 py-1 rounded-xl hover:bg-green-900 transition text-sm"
-        >
+        
           View Recipe
         </Link>
       </div>
