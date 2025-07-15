@@ -5,7 +5,7 @@ import { FaSearch, FaBars, FaBell, FaUserCircle } from 'react-icons/fa';
 import { inter } from '@/app/utils/fonts';
 import Image from 'next/image';
 import SearchBar from './SearchBar';
-import { useState } from 'react';
+import { useState} from 'react';
 
 import toast from 'react-hot-toast';
 import { useAuth } from '@/app/context/authContext';

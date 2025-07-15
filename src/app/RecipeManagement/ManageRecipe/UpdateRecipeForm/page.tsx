@@ -2,38 +2,6 @@
 import { useSearchParams } from "next/navigation"
 import RecipeForm from "@/components/RecipeForm"
 
-type RecipeFormData = {
-  title: string
-  ingredients: string
-  instructions: string
-  category: string
-  cookingTime: number
-  portion: number
-  calories: number
-  protein: number
-  fat: number
-  carbs: number
-  imageFile: FileList
-}
-
-const steps = ["Basic Info", "Details", "Nutrition & Image"]
-
-const recipeCategories = [
-  "Breakfast",
-  "Lunch",
-  "Dinner",
-  "Main Course",
-  "Appetizer",
-  "Dessert",
-  "Snack",
-  "Beverage",
-  "Soup",
-  "Salad",
-  "Side Dish",
-  "Sauce",
-  "Other",
-]
-
 const UpdateRecipePage = () => {
   const searchParams = useSearchParams()
   const recipeId = searchParams.get("id")

@@ -1,4 +1,5 @@
-'use client'; 
+'use client';
+
 import React, { useState } from "react";
 import {
   FaHome,
@@ -17,16 +18,7 @@ interface SidebarProps {
   isOpen: boolean;
 }
 
-const iconData = [
-  { icon: FaHome, label: "Home", href: "/" },
-  { icon: FaUtensils, label: "Manage Recipe" },
-  { icon: FaClipboardList, label: "Clipboard List" },
-  { icon: FaHeart, label: "Favorites", href: "/RecipeManagement/FavoritePage" },
-  { icon: FaCog, label: "Settings" },
-  { icon: FaSignOutAlt, label: "Logout" },
-];
-
-const Sidebar = ({ isOpen }: SidebarProps) => {
+const SideBar = ({ isOpen }: SidebarProps) => {
   const [showMenuPanel, setShowMenuPanel] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -43,17 +35,22 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   };
 
   const handleIconClick = (label: string) => {
-    if (label === "Manage Recipe") {
+    if (["Manage Recipe", "Clipboard List", "Favorites"].includes(label)) {
       if (!isAuthenticated) {
         router.push("/Login_Register/Login");
-      } else {
-        toggleMenuPanel();
+        return;
       }
-    } else if (label === "Clipboard List" || label === "Favorites") {
-      if (!isAuthenticated) {
-        router.push("/Login_Register/Login");
-      } else {
-        router.push(`/${label.replace(" ", "")}`); // Adjust if routes are different
+
+      switch (label) {
+        case "Manage Recipe":
+          toggleMenuPanel();
+          break;
+        case "Clipboard List":
+          router.push("/RecipeManagement/ClipboardList");
+          break;
+        case "Favorites":
+          router.push("/RecipeManagement/FavoritePage");
+          break;
       }
     } else if (label === "Logout") {
       logout();
@@ -87,7 +84,9 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               className="cursor-pointer hover:text-yellow-400 transition-all duration-300"
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => handleIconClick(label)}
+              onClick={() => {
+                if (!href) handleIconClick(label);
+              }}
             />
           );
 
@@ -129,4 +128,4 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   );
 };
 
-export default Sidebar;
+export default SideBar;

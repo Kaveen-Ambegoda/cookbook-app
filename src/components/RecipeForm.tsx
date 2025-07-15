@@ -264,7 +264,6 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
       router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        console.error("Axios error:", error.response?.data || error.message)
         toast.error(`Failed to ${mode} recipe: ` + (error.response?.data?.message || error.message))
       } else {
         console.error("Unexpected error:", error)

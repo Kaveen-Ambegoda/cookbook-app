@@ -131,7 +131,7 @@ export default function ManageRecipes() {
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
             <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
             <p className="mb-6">
-              Are you sure you want to delete "{recipeToDelete?.title}"?
+              Are you sure you want to delete {recipeToDelete?.title}?
             </p>
             <div className="flex justify-end space-x-4">
               <button
