@@ -1,6 +1,6 @@
 "use client"
 import { useSearchParams } from "next/navigation"
-import RecipeForm from "@/components/recipeForm"
+import RecipeForm from "@/components/RecipeForm"
 
 type RecipeFormData = {
   title: string

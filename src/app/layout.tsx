@@ -21,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen">
+        <AuthProvider>
         <Toaster position="bottom-right" reverseOrder={false} />
 
         {isAuthPage ? (
@@ -44,6 +45,7 @@ export default function RootLayout({
             </div>
           </>
         )}
+        </AuthProvider>
       </body>
     </html>
   );

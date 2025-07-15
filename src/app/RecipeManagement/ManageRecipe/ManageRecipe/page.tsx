@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; 
-import axios from 'axios';
+import { useRouter } from 'next/navigation';
+import API from "@/app/utils/axiosInstance";
 import toast from 'react-hot-toast';
 import RecipeCard from '@/components/RecipeCard';
 import SimpleFooter from '@/components/SimpleFooter';
@@ -15,7 +15,7 @@ interface RecipeType {
 }
 
 export default function ManageRecipes() {
-  const router = useRouter(); 
+  const router = useRouter();
 
   const [recipes, setRecipes] = useState<RecipeType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,44 +23,37 @@ export default function ManageRecipes() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<RecipeType | null>(null);
 
- useEffect(() => {
-  const fetchRecipes = async () => {
-    setIsLoading(true);
-    setError(null);
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("To see the recipes, please sign in.");
-        toast.error("User not authenticated. Please log in.");
-        return;
-      }
-
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/myRecipes`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      try {
+        const token = localStorage.getItem("token");
+        const response = await API.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/myRecipes`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setRecipes(response.data);
+      } catch (error: any) {
+        console.error("Error fetching recipes:", error);
+        if (error.response?.status === 401) {
+          setError("User not authenticated. Please log in.");
+          toast.error("User not authenticated. Please log in.");
+        } else {
+          setError("Failed to load recipes. Please try again.");
         }
-      );
-
-      setRecipes(response.data);
-    } catch (error: any) {
-      console.error("Error fetching recipes:", error);
-      if (error.response?.status === 401) {
-        setError("To see the recipes, please sign in.");
-        toast.error("User not authenticated. Please log in.");
-      } else {
-        setError("Failed to load recipes. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  fetchRecipes();
-}, []);
+    fetchRecipes();
+  }, []);
 
   const handleUpdateClick = (recipe: RecipeType) => {
     router.push(`UpdateRecipeForm?id=${recipe.id}`);
@@ -74,26 +67,12 @@ export default function ManageRecipes() {
   const confirmDelete = async () => {
     if (recipeToDelete) {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          toast.error("User not authenticated. Please log in.");
-          return;
-        }
-
-        await axios.delete(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/deleteRecipe/${recipeToDelete.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
+        await API.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/deleteRecipe/${recipeToDelete.id}`);
         setRecipes((prev) => prev.filter((r) => r.id !== recipeToDelete.id));
         setRecipeToDelete(null);
         setShowConfirm(false);
         toast.success("Recipe deleted successfully!");
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to delete recipe:", error);
         toast.error("Failed to delete recipe. Please try again.");
       }
@@ -147,7 +126,6 @@ export default function ManageRecipes() {
         )}
       </main>
 
-      {/* Confirmation Modal */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">

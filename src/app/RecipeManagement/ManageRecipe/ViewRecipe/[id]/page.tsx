@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import axios from "axios";
+import API from "@/app/utils/axiosInstance";
 
 interface Recipe {
   id: number;
@@ -31,7 +31,7 @@ const ViewRecipe: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${id}`);
+        const response = await API.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${id}`);
         const data = response.data;
 
         if (typeof data.ingredients === "string") {

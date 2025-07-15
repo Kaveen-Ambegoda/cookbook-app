@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { adlam } from '@/app/utils/fonts';
 import { roboto } from '@/app/utils/fonts';
 import { abeezee } from '@/app/utils/fonts';
+import { useAuth } from '@/app/context/authContext';
 
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebookF, FaApple } from 'react-icons/fa';
@@ -17,7 +18,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState(""); 
-
+  const { login } = useAuth(); // Use the login function from auth context
   const router = useRouter();  
 
   // Function to handle form submission
@@ -41,9 +42,11 @@ export default function LoginPage() {
       console.log('Login response:', data);
 
       if (response.ok) {
-        console.log('Login successful, token:', data.token);
-        localStorage.setItem("token", data.token);
+        
+        const {token , refreshToken} = data; // Destructure token and refreshToken from response
+        login(token , refreshToken); // This updates context and localStorage
         setMessage("Login successful");
+
         
         
         // Redirect to frontend dashboard or homepage

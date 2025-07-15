@@ -1,5 +1,4 @@
 'use client'; 
-
 import React, { useState } from "react";
 import {
   FaHome,
@@ -11,6 +10,8 @@ import {
 } from "react-icons/fa";
 import Link from 'next/link';
 import MenuPanel from './MenuPanel';
+import { useAuth } from "@/app/context/authContext";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -30,6 +31,9 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
+  const { isAuthenticated, logout } = useAuth();
+  const router = useRouter();
+
   const toggleMenuPanel = () => {
     setShowMenuPanel((prev) => !prev);
   };
@@ -38,20 +42,33 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     setShowMenuPanel(false);
   };
 
-  const handleIconClick = (index: number) => {
-    if (index === 1) {
-      toggleMenuPanel();
-      setActiveIndex(index);
-      setActiveIndex(null);
-    } else {
-      setActiveIndex(index);
-      hideMenuPanel();
-      if (activeIndex === 1) {
-        setActiveIndex(null);
+  const handleIconClick = (label: string) => {
+    if (label === "Manage Recipe") {
+      if (!isAuthenticated) {
+        router.push("/Login_Register/Login");
+      } else {
+        toggleMenuPanel();
       }
-      setActiveIndex(null);
+    } else if (label === "Clipboard List" || label === "Favorites") {
+      if (!isAuthenticated) {
+        router.push("/Login_Register/Login");
+      } else {
+        router.push(`/${label.replace(" ", "")}`); // Adjust if routes are different
+      }
+    } else if (label === "Logout") {
+      logout();
+      router.push("/");
     }
   };
+
+  const iconData = [
+    { icon: FaHome, label: "Home", href: "/" },
+    { icon: FaUtensils, label: "Manage Recipe", restricted: true },
+    { icon: FaClipboardList, label: "Clipboard List", restricted: true },
+    { icon: FaHeart, label: "Favorites", restricted: true },
+    { icon: FaCog, label: "Settings", href: "/Settings" },
+    ...(isAuthenticated ? [{ icon: FaSignOutAlt, label: "Logout" }] : []),
+  ];
 
   return (
     <>
@@ -70,7 +87,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               className="cursor-pointer hover:text-yellow-400 transition-all duration-300"
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => handleIconClick(i)}
+              onClick={() => handleIconClick(label)}
             />
           );
 

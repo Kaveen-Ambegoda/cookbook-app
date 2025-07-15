@@ -1,4 +1,3 @@
-// components/SimpleFooter.tsx
 import React from 'react';
 
 const SimpleFooter: React.FC = () => {
