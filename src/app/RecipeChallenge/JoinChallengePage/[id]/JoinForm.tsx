@@ -220,8 +220,75 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     }
   };
 
-  const handleRecipeSubmit = () => {
-    router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage`);
+  const handleRecipeSubmit = async () => {
+    // Validate form data
+    if (!recipeData.displayName || !recipeData.recipeName || !recipeData.recipeDescription) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Filter out empty ingredients
+    const validIngredients = recipeData.ingredients.filter(ingredient => ingredient.trim() !== '');
+    
+    if (validIngredients.length === 0) {
+      alert('Please add at least one ingredient');
+      return;
+    }
+
+    // Check ingredient limits
+    const limits = getIngredientLimits(challenge!);
+    if (validIngredients.length < limits.min || validIngredients.length > limits.max) {
+      alert(`Please provide between ${limits.min} and ${limits.max} ingredients`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Create FormData for file upload
+      const submitFormData = new FormData();
+      submitFormData.append('DisplayName', recipeData.displayName);
+      submitFormData.append('RecipeName', recipeData.recipeName);
+      submitFormData.append('RecipeDescription', recipeData.recipeDescription);
+      submitFormData.append('ChallengeId', challengeId);
+      submitFormData.append('ChallengeName', challenge?.title || '');
+      submitFormData.append('ChallengeCategory', formData.challengeCategory || '');
+      submitFormData.append('UserEmail', formData.email);
+      submitFormData.append('UserFullName', formData.fullName);
+      
+      // Add ingredients
+      validIngredients.forEach((ingredient, index) => {
+        submitFormData.append(`Ingredients[${index}]`, ingredient);
+      });
+
+      // Add image if present
+      if (recipeData.recipeImage) {
+        submitFormData.append('RecipeImage', recipeData.recipeImage);
+      }
+
+      // Submit to backend
+      const response = await axios.post('https://localhost:7205/api/submission', submitFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        // Navigate to result page with success message
+        router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage?success=true&submissionId=${response.data.submission.id}`);
+      } else {
+        setError(response.data.message || 'Failed to submit recipe');
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'An error occurred while submitting the recipe');
+      } else {
+        setError('An unexpected error occurred');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!challenge) {
@@ -411,9 +478,10 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
 
         <button
           onClick={handleRecipeSubmit}
-          className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 mt-10 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block"
+          disabled={isSubmitting}
+          className="text-white bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 px-6 py-2 mt-10 rounded-lg transition font-medium shadow-md hover:shadow-lg inline-block disabled:cursor-not-allowed"
         >
-          Submit Your Recipe Now
+          {isSubmitting ? "Submitting Recipe..." : "Submit Your Recipe Now"}
         </button>
       </div>
     );
