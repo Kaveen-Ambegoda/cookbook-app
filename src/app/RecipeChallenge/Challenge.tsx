@@ -74,7 +74,7 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
                 <div className="mt-auto pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
                   <button className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition">
                     <FaShareAlt className="text-lg" />
-                    <span className="font-medium">Share Challenge</span>
+                    <span className="font-medium">LeaderBord </span>
                   </button>
                   
                   <Link

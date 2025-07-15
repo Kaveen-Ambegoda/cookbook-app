@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Link } from "lucide-react";
+import { Link, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { getChallengeById } from "../../../../utils/challengeUtils";
@@ -54,6 +54,9 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     recipeDescription: "",
     recipeImage: null,
   });
+
+  // Add image preview state
+  const [recipeImagePreview, setRecipeImagePreview] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -116,18 +119,41 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   const handleRecipeChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, files } = e.target as HTMLInputElement;
+    const { name, value } = e.target;
     
-    if (name === "recipeImage" && files) {
+    setRecipeData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle recipe image upload with preview
+  const handleRecipeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.match(/^image\/(png|jpg|jpeg|gif)$/)) {
+        alert("Only PNG, JPG,JPEG, GIF files are supported");
+        return;
+      }
+      
       setRecipeData(prev => ({
         ...prev,
-        recipeImage: files[0]
+        recipeImage: file
       }));
-    } else {
-      setRecipeData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setRecipeImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -335,15 +361,50 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Upload a Picture</label>
-              <input
-                type="file"
-                name="recipeImage"
-                onChange={handleRecipeChange}
-                accept="image/*"
-                className="mt-1 w-full text-sm border border-gray-300 rounded-md shadow-sm py-2 px-3"
-              />
-              <p className="text-xs text-gray-500 mt-1">Maximum 5MB</p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Upload a Picture</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  accept="image/png,image/jpg,image/jpeg,image/gif"
+                  onChange={handleRecipeImageChange}
+                  className="hidden"
+                  id="recipe-image-upload"
+                />
+                
+                {recipeImagePreview ? (
+                  <div className="space-y-3">
+                    <img
+                      src={recipeImagePreview}
+                      alt="Recipe preview"
+                      className="max-h-32 mx-auto rounded-lg object-cover"
+                    />
+                    <p className="text-sm text-gray-600">{recipeData.recipeImage?.name}</p>
+                    <label
+                      htmlFor="recipe-image-upload"
+                      className="inline-flex items-center px-3 py-1 text-sm text-orange-600 hover:text-orange-700 cursor-pointer"
+                    >
+                      Change Image
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+                    <div>
+                      <p className="text-gray-600 font-medium">Choose an image</p>
+                    </div>
+                    <label
+                      htmlFor="recipe-image-upload"
+                      className="inline-block px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors"
+                    >
+                      Browse Files
+                    </label>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <span>Maximum file size: 5MB</span>
+                <span>PNG, JPG, GIF supported</span>
+              </div>
             </div>
           </form>
         </div>
@@ -381,7 +442,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
               <p className="text-sm text-red-700">{error}</p>
             </div>
           </div>
-        </div>
+          </div>
       )}
 
       <div>
