@@ -2,10 +2,11 @@
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import Sidebar from "@/Components/SideBar";
-import Navbar from "@/Components/NavBar";
-import { AuthProvider } from './context/authContext';
+import { Toaster } from "react-hot-toast"; 
+import SideBar from "@/components/SideBar";
+import Navbar from "../components/NavBar";
+import { AuthProvider } from "./context/authContext";
+
 
 export default function RootLayout({
   children,
@@ -35,7 +36,7 @@ export default function RootLayout({
           <>
             <Navbar setIsOpen={setIsSidebarOpen} />
             <div className="flex flex-1">
-              <Sidebar isOpen={isSidebarOpen} />
+              <SideBar isOpen={isSidebarOpen} />
               <main
                 className={`flex-1 p-4 transition-all duration-300 ${
                   isSidebarOpen ? "pl-16" : "pl-4"
