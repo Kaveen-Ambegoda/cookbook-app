@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FaStar, FaThumbsUp, FaArrowLeft, FaUser, FaClock, FaUtensils, FaHeart, FaComment } from 'react-icons/fa';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Navbar from '../../../../Components/NavBar';
+
 
 interface Recipe {
   id: string;
@@ -119,7 +119,7 @@ export default function VoteAndRateChallenge() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
       {/* Navbar */}
-      <Navbar setIsOpen={setIsOpen} />
+      
       
       {/* Add top padding to account for fixed navbar */}
       <div className="pt-16">
