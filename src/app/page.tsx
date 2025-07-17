@@ -1,6 +1,4 @@
-
 import HomePage from "./RecipeManagement/Home/HomePage/page";
-
 
 export default function Home() {
   return (

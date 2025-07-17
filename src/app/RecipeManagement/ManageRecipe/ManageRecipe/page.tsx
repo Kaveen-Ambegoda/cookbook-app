@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import API from "@/app/utils/axiosInstance";
 import toast from 'react-hot-toast';
-import RecipeCard from '@/components/RecipeCard';
-import SimpleFooter from '@/components/SimpleFooter';
+import RecipeCard from '@/Components/RecipeCard';
+import SimpleFooter from '@/Components/SimpleFooter';
 
 interface RecipeType {
   id: number;
