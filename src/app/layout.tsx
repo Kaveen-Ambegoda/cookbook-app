@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import "./globals.css";
@@ -12,9 +13,11 @@ export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
+
 }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
 
   const isAuthPage =
     pathname?.toLowerCase().includes("/login_register/login") ||
