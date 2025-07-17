@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaSearch } from 'react-icons/fa';
 
@@ -8,12 +8,18 @@ export default function SearchBar() {
   const [keyword, setKeyword] = useState('');
   const router = useRouter();
 
+  // 👉 Auto-redirect to homepage when input is cleared
+  useEffect(() => {
+    if (keyword.trim() === '') {
+      router.push('/');
+    }
+  }, [keyword, router]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
     const trimmedKeyword = keyword.trim();
     if (trimmedKeyword) {
-      // Redirect to search results page with keyword as query param
       router.push(`/RecipeManagement/search?keyword=${encodeURIComponent(trimmedKeyword)}`);
     }
   };

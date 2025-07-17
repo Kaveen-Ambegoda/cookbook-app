@@ -36,12 +36,12 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/FavoriteRecipes`, {
-        method: "POST", // ✅ Ensure this line is present
+        method: "POST", 
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(recipe.id), // ✅ Backend expects raw int in body
+        body: JSON.stringify(recipe.id), // Backend expects raw int in body
       });
 
       if (response.ok) {
@@ -129,7 +129,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
           href={`/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`}
           className="text-white bg-green-700 px-3 py-1 rounded-xl hover:bg-green-900 transition text-sm"
         >
-          View Recipe
+          View
         </Link>
       </div>
     </div>

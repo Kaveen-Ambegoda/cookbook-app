@@ -1,4 +1,5 @@
 'use client';
+import HomeRecipeCard from '@/components/HomeRecipeCard';
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -7,8 +8,11 @@ import axios from 'axios';
 interface Recipe {
   id: number;
   title: string;
-  image?: string;
-  // Add other fields if needed, but make sure they match the backend DTO
+  image: string;
+  cookingTime: number;
+  portion: number;
+  favorites?: number;
+  reviews?: number;
 }
 
 export default function SearchResults() {
@@ -28,11 +32,7 @@ export default function SearchResults() {
         console.log("Fetching:", apiUrl);
         const response = await axios.get(apiUrl);
         setRecipes(response.data);
-
-          if (response.data.length === 1) {
-            const recipeId = response.data[0].id;
-            router.push(`/RecipeManagement/ManageRecipe/ViewRecipe/${recipeId}`);
-          }
+        
       } catch (error) {
         console.error("Search failed:", error);
       } finally {
@@ -54,18 +54,13 @@ export default function SearchResults() {
       ) : recipes.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {recipes.map((recipe) => (
-            <div key={recipe.id} className="bg-white shadow p-4 rounded">
-              <h3 className="text-lg font-semibold mb-2">{recipe.title}</h3>
-              {recipe.image && (
-                <img src={recipe.image} alt={recipe.title} className="w-full h-40 object-cover rounded mb-2" />
-              )}
-              {/* Add other fields if needed */}
-            </div>
+            <HomeRecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>
       ) : (
         <p>No recipes found.</p>
       )}
+
     </div>
   );
 }
