@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { useReviewCount } from "./useReviewCount";
+
 import {
   FaHeart,
   FaCommentDots,
@@ -24,6 +26,8 @@ type RecipeProps = {
 };
 
 const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
+  const reviewCount = useReviewCount(recipe.id);
+
   const [isFavorited, setIsFavorited] = useState(false);
 
   const handleFavorite = async () => {
@@ -112,9 +116,10 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
         <Link href={`/RecipeManagement/Review/${recipe.id}`} className="flex items-center space-x-1 hover:scale-105 transition">
           <FaCommentDots className="text-blue-500 text-xl" />
           <span className="text-gray-700 font-medium text-sm">
-            {recipe.reviews ?? 0}
+            {reviewCount ?? 0}
           </span>
         </Link>
+
 
         {/* Share */}
         <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition">
