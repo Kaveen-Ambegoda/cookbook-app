@@ -26,7 +26,7 @@ export default function RecipeCard({ recipe, onView, onUpdate, onDelete }: Recip
       {/* Recipe Image */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[4/3] rounded-lg">
       <img
-        src={recipe.image || "/image/cake.jpg"}
+        src={recipe.image || "/image/default.jpg"}
         alt={recipe.title}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />

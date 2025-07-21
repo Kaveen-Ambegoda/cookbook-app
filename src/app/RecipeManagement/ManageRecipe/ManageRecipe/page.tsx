@@ -108,9 +108,9 @@ export default function ManageRecipes() {
   };
 
   return (
-    <div className=" pt-16 p-4">
+    <div className=" pt-16 p-8">
       <main className="flex-grow max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-green-800 mb-6">Manage Your Recipes</h2>
+        <h2 className="text-3xl font-bold text-green-800 mb-8 mt-6">Manage Your Recipes</h2>
 
         {isLoading && (
           <p className="text-center text-gray-500 animate-pulse">Loading recipes...</p>

@@ -109,12 +109,12 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
         </button>
 
         {/* Reviews */}
-        <div className="flex items-center space-x-1">
-          <FaCommentDots className="text-blue-500 text-xl hover:scale-110 transition" />
+        <Link href={`/RecipeManagement/Review/${recipe.id}`} className="flex items-center space-x-1 hover:scale-105 transition">
+          <FaCommentDots className="text-blue-500 text-xl" />
           <span className="text-gray-700 font-medium text-sm">
             {recipe.reviews ?? 0}
           </span>
-        </div>
+        </Link>
 
         {/* Share */}
         <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition">
