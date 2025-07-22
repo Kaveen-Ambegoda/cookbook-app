@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import HomeRecipeCard from "@/Components/HomeRecipeCard";
-import HomeNavBar from "@/Components/HomeNavBar";
+import HomeRecipeCard from "@/components/HomeRecipeCard";
+import HomeNavBar from "@/components/HomeNavBar";
 import Welcome from "../Welcome/page";
-import Footer from "@/Components/Footer";
+import Footer from "@/components/Footer";
 
 interface Recipe {
   id: number;
@@ -57,7 +57,7 @@ const HomePage = () => {
                 reviews: recipe.reviews,
               }}
             />
-          );
+          ); 
         })}
       </div>
 
