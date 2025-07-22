@@ -1,6 +1,7 @@
 'use client';
-import { Notification, mockNotifications } from '@/app/Admin/Layouts/Data/notifiData';
+import { Notification,fetchNotifications, updateNotificationStatus, markAllAsRead } from '@/app/Admin/Layouts/Data/notifiData';
 import React, { useState } from 'react';
+import { useEffect } from "react";
 import { 
   Bell, 
   AlertTriangle, 
@@ -26,12 +27,29 @@ import {
 
 
 const AdminNotifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+
+  useEffect(() => {
+  const loadNotifications = async () => {
+    try {
+      const data = await fetchNotifications();
+      setNotifications(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  loadNotifications();
+}, []);
+
 
   const notificationTypes = [
     { key: 'all', label: 'All Notifications', icon: Bell, count: notifications.length },
@@ -51,29 +69,42 @@ const AdminNotifications: React.FC = () => {
     return matchesTab && matchesSearch && matchesPriority && matchesStatus;
   });
 
-  const handleNotificationAction = (id: string, action: 'approve' | 'reject' | 'resolve' | 'dismiss') => {
-    setNotifications(notifications.map(notification => {
-      if (notification.id === id) {
-        let newStatus: Notification['status'];
-        switch (action) {
-          case 'approve': newStatus = 'approved'; break;
-          case 'reject': newStatus = 'rejected'; break;
-          case 'resolve': newStatus = 'resolved'; break;
-          case 'dismiss': newStatus = 'dismissed'; break;
-          default: newStatus = notification.status;
-        }
-        return { ...notification, status: newStatus, isRead: true };
-      }
-      return notification;
-    }));
+  const handleNotificationAction = async (id: string, action: 'approve' | 'reject' | 'resolve' | 'dismiss') => {
+  try {
+    await updateNotificationStatus(id, action);
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id
+          ? {
+              ...notification,
+              status:
+                action === 'approve'
+                  ? 'approved'
+                  : action === 'reject'
+                  ? 'rejected'
+                  : action === 'resolve'
+                  ? 'resolved'
+                  : 'dismissed',
+              isRead: true,
+            }
+          : notification
+      )
+    );
     setSelectedNotification(null);
-  };
+  } catch (err) {
+    console.error('Failed to update notification:', err);
+  }
+};
 
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map(notification =>
-      notification.id === id ? { ...notification, isRead: true } : notification
-    ));
-  };
+  const handleMarkAllRead = async () => {
+  try {
+    await markAllAsRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  } catch (err) {
+    console.error('Failed to mark all as read:', err);
+  }
+};
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -117,10 +148,29 @@ const AdminNotifications: React.FC = () => {
   };
 
   const handleNavigateToManagement = (notification: Notification) => {
-    // Simulate navigation to relevant management page
-    const targetPage = notification.targetType === 'user' ? 'User Management' : 'Recipe Management';
-    alert(`Navigating to ${targetPage} page with ${notification.targetName} highlighted`);
-  };
+  if (notification.targetUrl) {
+    // Direct navigation if targetUrl is provided
+    window.location.href = notification.targetUrl;
+  } else {
+    // Construct URL based on type and ID
+    let url = '';
+    if (notification.targetType === 'user' && notification.targetId) {
+      url = `/Admin/users?highlight=${notification.targetId}`;
+    } else if (notification.targetType === 'recipe' && notification.targetId) {
+      url = `/Admin/recipes?highlight=${notification.targetId}`;
+    }
+
+    if (url) {
+      window.location.href = url;
+    } else {
+      alert(`No specific page for ${notification.targetName}`);
+    }
+  }
+};
+  
+  if (loading) return <div className="p-6 text-gray-600">Loading notifications...</div>;
+  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -139,9 +189,11 @@ const AdminNotifications: React.FC = () => {
               <span className="text-sm text-gray-500">
                 {notifications.filter(n => !n.isRead).length} unread
               </span>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+              {/*Mark all Read Button */}
+              <button onClick={handleMarkAllRead} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
                 Mark All Read
               </button>
+
             </div>
           </div>
         </div>
