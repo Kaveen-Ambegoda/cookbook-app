@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import API from "@/app/utils/axiosInstance";
+import FeedbackHighlight from '@/components/FeedbackHighlight';
+import SimpleFooter from "@/components/SimpleFooter";
 
 interface Recipe {
   id: number;
@@ -138,6 +140,13 @@ const ViewRecipe: React.FC = () => {
           )}
         </ol>
       </div>
+
+      <div className="py-12">
+        <FeedbackHighlight recipe={recipe} />
+      </div>
+
+      <div><SimpleFooter/></div>
+
     </div>
   );
 };

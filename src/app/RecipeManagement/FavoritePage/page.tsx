@@ -53,15 +53,15 @@ const FavoritePage = () => {
   }, [router]);
 
   return (
-    <div>
-      <h1 className="text-green-700 text-2xl font-semibold pl-4 pt-16">My Favorite Recipes</h1>
+    <div className="pt-6 p-8">
+      <h1 className="text-green-800 font-bold text-3xl font-semibold pl-8 pt-16">My Favorite Recipes</h1>
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Loading favorites...</p>
       ) : favorites.length === 0 ? (
         <p className="text-center text-gray-600 py-8">No favorite recipes yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xd:grid-cols-4 gap-8 p-4">
           {favorites.map((recipe) => (
             <HomeRecipeCard key={recipe.id} recipe={recipe} />
           ))}
