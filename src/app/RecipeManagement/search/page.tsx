@@ -1,5 +1,5 @@
 'use client';
-import HomeRecipeCard from '@/components/HomeRecipeCard';
+import HomeRecipeCard from '@/Components/HomeRecipeCard';
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';

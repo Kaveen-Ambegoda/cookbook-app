@@ -1,8 +1,8 @@
 "use client";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import ReviewForm from "@/components/ReviewForm";
-import ReviewList from "@/components/ReviewList";
+import ReviewForm from "@/Components/ReviewForm";
+import ReviewList from "@/Components/ReviewList";
 
 export default function ReviewRecipePage() {
   const params = useParams();
