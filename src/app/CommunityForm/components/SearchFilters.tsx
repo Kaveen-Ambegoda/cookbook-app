@@ -41,8 +41,8 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
             value={filters.author}
             onChange={(e) => setFilter('author', e.target.value)}
           >
-            {authors.map(author => (
-              <option key={author} value={author}>
+            {authors.map((author, index) => (
+              <option key={`author-${index}-${author}`} value={author}>
                 {author === 'All' ? 'All Authors' : author}
               </option>
             ))}
@@ -61,8 +61,8 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
             value={filters.category}
             onChange={(e) => setFilter('category', e.target.value)}
           >
-            {categories.map(category => (
-              <option key={category} value={category}>
+            {categories.map((category, index) => (
+              <option key={`category-${index}-${category}`} value={category}>
                 {category === 'All' ? 'All Categories' : category}
               </option>
             ))}

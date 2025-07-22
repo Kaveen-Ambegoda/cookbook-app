@@ -45,10 +45,15 @@ const ForumPost: React.FC<ForumPostProps> = ({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isVoting, setIsVoting] = useState(false);
 
-  // Check if current user owns this forum
   const isOwner = currentUserId && forum.userId && currentUserId.toString() === forum.userId.toString();
 
-  const handleDeleteClick = () => {
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setDeleteError(null);
     setIsDeleteModalOpen(true);
   };
@@ -78,7 +83,8 @@ const ForumPost: React.FC<ForumPostProps> = ({
     }
   };
 
-  const handleUpvote = async () => {
+  const handleUpvote = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isVoting) return;
     setIsVoting(true);
     try {
@@ -88,7 +94,8 @@ const ForumPost: React.FC<ForumPostProps> = ({
     }
   };
 
-  const handleDownvote = async () => {
+  const handleDownvote = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isVoting) return;
     setIsVoting(true);
     try {
@@ -98,7 +105,16 @@ const ForumPost: React.FC<ForumPostProps> = ({
     }
   };
 
-  // Helper function to get vote button style
+  const handleToggleComments = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleComments(forum.id);
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleFavorite(forum.id);
+  };
+
   const getVoteButtonStyle = (voteType: 'upvote' | 'downvote') => {
     const isActive = forum.userVote === voteType;
     const baseStyle = "p-1 rounded transition-all duration-200 ";
@@ -152,7 +168,6 @@ const ForumPost: React.FC<ForumPostProps> = ({
               <ChevronDown size={24} />
             </button>
             
-            {/* Score indicator */}
             <div className="mt-2 text-xs text-gray-500 font-medium">
               Score: {forum.upvotes - forum.downvotes}
             </div>
@@ -183,11 +198,10 @@ const ForumPost: React.FC<ForumPostProps> = ({
                 <span className={`text-xs text-white bg-[#F25019] px-2 py-1 rounded-full ${roboto.className}`}>
                   {forum.category}
                 </span>
-                {/* Owner Controls */}
                 {isOwner && (
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setIsEditModalOpen(true)}
+                      onClick={handleEditClick}
                       className="p-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                       title="Edit Forum"
                     >
@@ -229,7 +243,6 @@ const ForumPost: React.FC<ForumPostProps> = ({
                 <span className="text-[#F25019] font-medium">{forum.author}</span>
                 {isOwner && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">You</span>}
               </div>
-              {/* Show user's vote status */}
               {forum.userVote && (
                 <div className="flex items-center gap-1">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -246,7 +259,7 @@ const ForumPost: React.FC<ForumPostProps> = ({
             <div className={`flex flex-wrap items-center gap-6 text-sm ${roboto.className}`}>
               <button 
                 className="flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors"
-                onClick={() => onToggleComments(forum.id)}
+                onClick={handleToggleComments}
               >
                 <MessageSquare size={16} />
                 <span>{forum.comments} comments</span>
@@ -263,7 +276,7 @@ const ForumPost: React.FC<ForumPostProps> = ({
                     ? 'text-red-500 hover:text-red-600' 
                     : 'text-gray-500 hover:text-red-500'
                 }`}
-                onClick={() => onToggleFavorite(forum.id)}
+                onClick={handleToggleFavorite}
               >
                 <Heart 
                   size={16} 
@@ -273,7 +286,6 @@ const ForumPost: React.FC<ForumPostProps> = ({
               </button>
             </div>
             
-            {/* Comments Section */}
             {activeCommentId === forum.id && (
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <CommentSection 
@@ -288,7 +300,6 @@ const ForumPost: React.FC<ForumPostProps> = ({
         </div>
       </div>
 
-      {/* Edit Modal */}
       {isEditModalOpen && (
         <EditForumModal
           forum={forum}
@@ -298,7 +309,6 @@ const ForumPost: React.FC<ForumPostProps> = ({
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}

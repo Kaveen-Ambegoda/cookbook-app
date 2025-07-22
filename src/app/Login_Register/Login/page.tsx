@@ -11,7 +11,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaFacebookF, FaApple } from 'react-icons/fa';
 
 // Backend API base URL (easily switch between HTTP & HTTPS here)
-const API_BASE_URL = "https://localhost:7205"; 
+const API_BASE_URL = "http://localhost:5007"; 
 
 export default function LoginPage() {
   // State hooks to store the form data

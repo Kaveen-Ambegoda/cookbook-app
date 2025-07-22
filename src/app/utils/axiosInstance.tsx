@@ -1,13 +1,23 @@
+// Location: src/app/utils/axiosInstance.ts (or wherever your API file is)
+
 import axios from 'axios';
 
+// --- THE DEFINITIVE FIX ---
+// Hardcode the backend URL. This is now the single source of truth.
+const API_BASE_URL = 'http://localhost:5007';
+
 const API = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseURL: API_BASE_URL, // All requests will now correctly start with http://localhost:5007
 });
 
+// Request Interceptor: Adds the auth token to every request header.
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.headers) {
+    if (token) {
+      if (!config.headers) {
+        config.headers = {};
+      }
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
@@ -15,45 +25,40 @@ API.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Response Interceptor: Automatically handles token refreshing.
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
       localStorage.getItem('refreshToken')
     ) {
       originalRequest._retry = true;
-
       try {
-        const refreshResponse = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Auth/refresh`,
-          {
-            token: localStorage.getItem('token'),
-            refreshToken: localStorage.getItem('refreshToken'),
-          }
-        );
+        // The refresh call also uses the configured baseURL automatically.
+        const refreshResponse = await API.post('/api/Auth/refresh', {
+          token: localStorage.getItem('token'),
+          refreshToken: localStorage.getItem('refreshToken'),
+        });
 
-        const newToken = refreshResponse.data.token;
-        const newRefreshToken = refreshResponse.data.refreshToken;
-
+        const { token: newToken, refreshToken: newRefreshToken } = refreshResponse.data;
         localStorage.setItem('token', newToken);
         localStorage.setItem('refreshToken', newRefreshToken);
-
-        // Update Authorization header and retry the request
         originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
         return API(originalRequest);
+        
       } catch (refreshError) {
-        console.error('Refresh token failed', refreshError);
+        console.error('Token refresh failed:', refreshError);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login'; // Redirect to login
+        if (typeof window !== 'undefined') {
+          window.location.href = '/Pages/Login_Register/Login'; // Adjust to your login page path
+        }
         return Promise.reject(refreshError);
       }
     }
-
     return Promise.reject(error);
   }
 );
