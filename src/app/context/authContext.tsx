@@ -16,11 +16,11 @@ interface AuthContextType {
   username: string | null;
   userId: string | null;
   role: string | null;
-  token: string | null;            // renamed from accessToken
+  token: string | null;            
   refreshToken: string | null;
   login: (token: string, refreshToken: string) => void;
   logout: () => void;
-  updateToken: (newToken: string) => void;  // renamed from updateAccessToken
+  updateToken: (newToken: string) => void;  
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState<string | null>(null);           // renamed from accessToken
+  const [token, setToken] = useState<string | null>(null);           
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
   const decodeAndSetUser = (jwt: string) => {
