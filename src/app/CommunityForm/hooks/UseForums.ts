@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Forum, ForumFilters, Comment, CreateForumData, UpdateForumData, AuthState, User, VoteResponse } from '../types/index';
 
-const API_URL = 'http://localhost:5007/api';
+const API_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api`;
+
 
 // --- THIS IS THE FIX ---
 // Define a default list of categories that will always be available.
@@ -59,6 +60,10 @@ export const useAuth = () => {
   }, []);
 
   return { authState, logout };
+};
+
+type UseForumsProps = {
+  currentUserId?: string;
 };
 
 const useForums = ({ currentUserId }: UseForumsProps = {}) => {
