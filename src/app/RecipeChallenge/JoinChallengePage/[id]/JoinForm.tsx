@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { getChallengeById } from "../../../../utils/challengeUtils";
 import { ChallengeType } from "../../ChallengeCard";
+import { useAuth } from "../../../context/authContext"; // adjust path if needed
+import { MdToken } from "react-icons/md";
 
 // Create or import axiosInstance
 const axiosInstance = axios.create({
@@ -17,14 +19,13 @@ const axiosInstance = axios.create({
 
 interface FormData {
   fullName: string;
-  email: string;
   challengeCategory: string;
   reasonForChoosing: string;
   termsAccepted: boolean;
 }
 
 interface RecipeData {
-  displayName: string;
+  
   recipeName: string;
   ingredients: string[];
   recipeDescription: string;
@@ -37,18 +38,24 @@ interface JoinFormProps {
 
 const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   const router = useRouter();
+  const { username } = useAuth(); // get username from context
+
+  // Mock function: Replace with your actual user fetching logic
+  const getCurrentUser = () => ({
+    name: username 
+  });
+
   const [challenge, setChallenge] = useState<ChallengeType | null>(null);
   
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
-    email: "",
     challengeCategory: "",
     reasonForChoosing: "",
     termsAccepted: false,
   });
 
   const [recipeData, setRecipeData] = useState<RecipeData>({
-    displayName: "",
+    
     recipeName: "",
     ingredients: [""],
     recipeDescription: "",
@@ -94,7 +101,14 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   useEffect(() => {
     const challengeData = getChallengeById(challengeId);
     setChallenge(challengeData);
-    
+
+    // Autofill user info
+    const user = getCurrentUser();
+    setFormData(prev => ({
+      ...prev,
+      fullName: user.name ?? ""
+    }));
+
     if (challengeData) {
       const limits = getIngredientLimits(challengeData);
       setRecipeData(prev => ({
@@ -197,13 +211,18 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     setError(null);
 
     try {
+      const token = localStorage.getItem('token'); // or your actual storage key
+
       const response = await axiosInstance.post('/api/Challenges', {
           FullName: formData.fullName,
-          Email: formData.email,
           ChallengeCategory: formData.challengeCategory,
           ReasonForChoosing: formData.reasonForChoosing,
           TermsAccepted: formData.termsAccepted,
           ChallengeName: challenge?.title || challengeId,
+      }, {
+          headers: {
+              'Authorization': `Bearer ${token}`,
+          },
       });
 
       if (response.status === 200) {
@@ -221,11 +240,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   };
 
   const handleRecipeSubmit = async () => {
-    // Validate form data
-    if (!recipeData.displayName || !recipeData.recipeName || !recipeData.recipeDescription) {
-      alert('Please fill in all required fields');
-      return;
-    }
+    
 
     // Filter out empty ingredients
     const validIngredients = recipeData.ingredients.filter(ingredient => ingredient.trim() !== '');
@@ -248,13 +263,11 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     try {
       // Create FormData for file upload
       const submitFormData = new FormData();
-      submitFormData.append('DisplayName', recipeData.displayName);
       submitFormData.append('RecipeName', recipeData.recipeName);
       submitFormData.append('RecipeDescription', recipeData.recipeDescription);
       submitFormData.append('ChallengeId', challengeId);
       submitFormData.append('ChallengeName', challenge?.title || '');
       submitFormData.append('ChallengeCategory', formData.challengeCategory || '');
-      submitFormData.append('UserEmail', formData.email);
       submitFormData.append('UserFullName', formData.fullName);
       
       // Add ingredients
@@ -268,17 +281,20 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
       }
 
       // Submit to backend
+      const token = localStorage.getItem('token'); // Or use your actual storage key
+
       const response = await axios.post('https://localhost:7205/api/submission', submitFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (response.data.success) {
-        // Navigate to result page with success message
-        router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage?success=true&submissionId=${response.data.submission.id}`);
-      } else {
-        setError(response.data.message || 'Failed to submit recipe');
+      // Navigate to result page with success message
+      if (response.status === 200) {
+
+        
+        router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage`);
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -347,13 +363,15 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
 
           <form className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Display Name</label>
+              <label className="block text-sm font-medium text-gray-700">Full Name</label>
               <input
                 type="text"
-                name="displayName"
-                value={recipeData.displayName}
-                onChange={handleRecipeChange}
-                placeholder="Enter your display name"
+                id="fullName"
+                name="fullName"
+                required
+                maxLength={50}
+                value={username || formData.fullName}
+                onChange={handleChange}
                 className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               />
             </div>
@@ -523,22 +541,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           name="fullName"
           required
           maxLength={50}
-          value={formData.fullName}
-          onChange={handleChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email Address
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          required
-          value={formData.email}
+          value={username || formData.fullName}
           onChange={handleChange}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         />

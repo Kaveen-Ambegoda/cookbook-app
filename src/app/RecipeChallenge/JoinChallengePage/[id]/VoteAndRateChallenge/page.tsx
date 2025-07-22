@@ -1,22 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaStar, FaThumbsUp, FaArrowLeft, FaUser, FaClock, FaUtensils, FaHeart, FaComment } from 'react-icons/fa';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import axios from 'axios'; // Add this at the top if not present
 
 
 interface Recipe {
   id: string;
-  title: string;
-  author: string;
-  image: string;
-  description: string;
+  displayName: string;
+  recipeName: string;
+  recipeImage: string | null;
+  recipeDescription: string;
   ingredients: string[];
-  instructions: string[];
+  challengeCategory: string;
   votes: number;
   rating: number;
   totalRatings: number;
+  // Add other fields as needed (votes, rating, etc.)
 }
 
 export default function VoteAndRateChallenge() {
@@ -31,61 +33,43 @@ export default function VoteAndRateChallenge() {
   const decodedChallengeTitle = challengeId ? decodeURIComponent(challengeId as string) : '';
 
   // Dummy data for recipes in the challenge
-  const [recipes] = useState<Recipe[]>([
-    {
-      id: '1',
-      title: 'Ginger Man',
-      author: 'Sarah Johnson',
-      image: '/image/gingerman.jpg',
-      description: 'A fragrant and spicy stir-fry with fresh Thai basil and tender chicken.',
-      ingredients: ['500g chicken breast', '2 tbsp Thai basil', '3 cloves garlic', '2 chilies', '2 tbsp oyster sauce'],
-      instructions: ['Cut chicken into strips', 'Heat oil in wok', 'Stir-fry chicken until cooked', 'Add basil and serve'],
-      votes: 24,
-      rating: 4.5,
-      totalRatings: 12
-    },
-    {
-      id: '2',
-      title: 'Mediterranean Quinoa Bowl',
-      author: 'Mike Chen',
-      image: '/image/2.jpg',
-      description: 'A healthy and colorful bowl packed with Mediterranean flavors.',
-      ingredients: ['1 cup quinoa', '200g feta cheese', '1 cucumber', '2 tomatoes', '1/4 cup olives'],
-      instructions: ['Cook quinoa', 'Dice vegetables', 'Mix all ingredients', 'Drizzle with olive oil'],
-      votes: 18,
-      rating: 4.2,
-      totalRatings: 8
-    },
-    {
-      id: '3',
-      title: 'Chocolate Lava Cake',
-      author: 'Emma Davis',
-      image: '/image/3.jpg',
-      description: 'Decadent chocolate cake with a molten center that flows like lava.',
-      ingredients: ['100g dark chocolate', '2 eggs', '50g butter', '2 tbsp flour', '1 tbsp sugar'],
-      instructions: ['Melt chocolate and butter', 'Mix with eggs', 'Add flour and sugar', 'Bake for 12 minutes'],
-      votes: 31,
-      rating: 4.8,
-      totalRatings: 15
-    },
-    {
-      id: '4',
-      title: 'Spicy Ramen Bowl',
-      author: 'Takashi Yamamoto',
-      image: '/image/2.jpg',
-      description: 'Authentic Japanese ramen with rich broth and perfect toppings.',
-      ingredients: ['2 ramen noodles', '1L chicken broth', '2 eggs', '100g pork belly', '2 green onions'],
-      instructions: ['Prepare broth', 'Cook noodles', 'Add toppings', 'Serve hot'],
-      votes: 27,
-      rating: 4.6,
-      totalRatings: 11
-    },
-  ]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   const [userVotes, setUserVotes] = useState<{[key: string]: 'up' | 'down' | null}>({});
   const [userRatings, setUserRatings] = useState<{[key: string]: number}>({});
 
-  const handleVote = (recipeId: string, voteType: 'up' | 'down') => {
+  useEffect(() => {
+  async function fetchRecipes() {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/submission/{id}`,
+        {
+          params: { challengeId }  // ✅ pass challengeId here
+        }
+      );
+      setRecipes(
+        response.data.map((recipe: any) => ({
+          id: recipe.id,
+          displayName: recipe.displayName,
+          recipeName: recipe.recipeName,
+          recipeImage: recipe.recipeImage,
+          recipeDescription: recipe.recipeDescription,
+          ingredients: recipe.ingredients,
+          challengeCategory: recipe.challengeCategory,
+          votes: recipe.votesCount,
+          rating: recipe.averageRating,
+          totalRatings: recipe.userRating ? 1 : 0, // you can also add: recipe.totalRatings if returned
+        }))
+      );
+    } catch (err) {
+      console.error("Error fetching recipes:", err);
+    }
+  }
+  if (challengeId) fetchRecipes();
+}, [challengeId]);
+
+
+  const handleVote = (recipeId: string, voteType: 'up' ) => {
     setUserVotes(prev => ({
       ...prev,
       [recipeId]: prev[recipeId] === voteType ? null : voteType
@@ -179,8 +163,8 @@ export default function VoteAndRateChallenge() {
                 {/* Recipe Image */}
                 <div className="h-48 sm:h-56 relative overflow-hidden">
                   <Image
-                    src={recipe.image}
-                    alt={recipe.title}
+                    src={recipe.recipeImage || '/default.jpg'}
+                    alt={recipe.recipeName}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -190,9 +174,17 @@ export default function VoteAndRateChallenge() {
                 {/* Recipe Content */}
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-xl font-bold text-gray-800 flex-1 line-clamp-2">
-                      {recipe.title}
-                    </h3>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-800 line-clamp-2 mb-2">
+                        {recipe.recipeName}
+                      </h3>
+                    </div>
+                    <div className="ml-3 flex-shrink-0">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 border border-orange-200">
+                        <FaUtensils className="mr-1 text-xs" />
+                        {recipe.challengeCategory}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Author */}
@@ -200,12 +192,22 @@ export default function VoteAndRateChallenge() {
                     <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center">
                       <FaUser className="text-white text-xs" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{recipe.author}</span>
+                    <span className="text-sm font-medium text-gray-700">{recipe.displayName}</span>
                   </div>
 
                   <p className="text-gray-600 mb-4 text-sm line-clamp-3">
-                    {recipe.description}
+                    {recipe.recipeDescription}
                   </p>
+
+                  {/* Ingredients */}
+                  <div className="mb-4">
+                    <span className="block text-sm font-semibold text-gray-700 mb-1">Ingredients:</span>
+                    <ul className="list-disc list-inside text-gray-600 text-sm">
+                      {recipe.ingredients.map((ingredient, idx) => (
+                        <li key={idx}>{ingredient}</li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {/* Current Rating */}
                   <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-xl">

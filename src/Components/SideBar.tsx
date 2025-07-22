@@ -7,12 +7,13 @@ import {
   FaClipboardList,
   FaHeart,
   FaCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaTrophy
 } from "react-icons/fa";
 import Link from 'next/link';
 import MenuPanel from './MenuPanel';
 import { useAuth } from "@/app/context/authContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ const SideBar = ({ isOpen }: SidebarProps) => {
 
   const { isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const toggleMenuPanel = () => {
     setShowMenuPanel((prev) => !prev);
@@ -63,6 +65,7 @@ const SideBar = ({ isOpen }: SidebarProps) => {
     { icon: FaUtensils, label: "Manage Recipe", restricted: true },
     { icon: FaClipboardList, label: "Clipboard List", restricted: true },
     { icon: FaHeart, label: "Favorites", restricted: true },
+    { icon: FaTrophy, label: "Recipe Challenges", href: "/RecipeChallenge" },
     { icon: FaCog, label: "Settings", href: "/Settings" },
     ...(isAuthenticated ? [{ icon: FaSignOutAlt, label: "Logout" }] : []),
   ];
@@ -77,11 +80,16 @@ const SideBar = ({ isOpen }: SidebarProps) => {
           const isHovered = hoveredIndex === i;
           const isActive = activeIndex === i;
           const showLabel = isHovered || (!isHovered && isActive);
+          const isCurrentPage = href && pathname === href;
 
           const iconElement = (
             <Icon
               size={24}
-              className="cursor-pointer hover:text-yellow-400 transition-all duration-300"
+              className={`cursor-pointer transition-all duration-300 ${
+                isCurrentPage 
+                  ? "text-orange-400" 
+                  : "hover:text-yellow-400"
+              }`}
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
               onClick={() => {
