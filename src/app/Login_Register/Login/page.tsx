@@ -129,7 +129,7 @@ export default function LoginPage() {
           {/* Sign-up link */}
           <div className={`mt-4 text-center text-[0.9rem] ${roboto.className}`}>
             <div className="text-[#333333]">
-              Don't have an account?
+              Do not have an account?
               <a href="/register" className="text-[#AE4700] font-bold ml-1">Sign Up</a>
             </div>
           </div>
