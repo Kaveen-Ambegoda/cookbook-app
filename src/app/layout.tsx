@@ -1,10 +1,11 @@
 "use client";
+
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import "./globals.css";
 import { Toaster } from "react-hot-toast"; 
-import SideBar from "@/components/SideBar";
-import Navbar from "../components/NavBar";
+import SideBar from "@/Components/SideBar";
+import Navbar from "../Components/NavBar";
 import { AuthProvider } from "./context/authContext";
 
 
@@ -12,9 +13,11 @@ export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
+
 }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
 
   const isAuthPage =
     pathname?.toLowerCase().includes("/login_register/login") ||
