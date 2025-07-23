@@ -1,6 +1,6 @@
 "use client"
 import { useSearchParams } from "next/navigation"
-import RecipeForm from "@/Components/RecipeForm"
+import RecipeForm from "@/components/RecipeForm"
 
 const UpdateRecipePage = () => {
   const searchParams = useSearchParams()
