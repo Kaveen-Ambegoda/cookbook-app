@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import HomeRecipeCard from "@/components/HomeRecipeCard";
-import HomeNavBar from "@/components/HomeNavBar";
+import HomeRecipeCard from "@/Components/HomeRecipeCard";
+import HomeNavBar from "@/Components/HomeNavBar";
 import Welcome from "../Welcome/page";
-import Footer from "@/components/Footer";
+import Footer from "@/Components/Footer";
 
 interface Recipe {
   id: number;
