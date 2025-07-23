@@ -1,130 +1,162 @@
 'use client';
 
-import React, { useState } from "react";
+import React from "react";
+import toast from "react-hot-toast";
+
 import {
   FaHome,
   FaUtensils,
   FaClipboardList,
   FaHeart,
   FaCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaTrophy,
 } from "react-icons/fa";
-import Link from 'next/link';
-import MenuPanel from './MenuPanel';
+import Link from "next/link";
 import { useAuth } from "@/app/context/authContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
-const SideBar = ({ isOpen }: SidebarProps) => {
-  const [showMenuPanel, setShowMenuPanel] = useState(false);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
+const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
   const { isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  const toggleMenuPanel = () => {
-    setShowMenuPanel((prev) => !prev);
-  };
+  const navItems = [
+    { icon: FaHome, label: "Home", route: "/" },
+    {
+      icon: FaUtensils,
+      label: "Manage Recipe",
+      route: "/RecipeManagement/ManageRecipe/ManageRecipe",
+    },
+    {
+      icon: FaHeart,
+      label: "Favorites",
+      route: "/RecipeManagement/FavoritePage",
+    },
+    { icon: FaClipboardList, label: "Recipe Forum", route: "/Forum" },
+    
+    { icon: FaTrophy, label: "Recipe Challenge", route: "/RecipeChallenge" },
+    { icon: FaCog, label: "Settings", route: "/Settings" },
+  ];
 
-  const hideMenuPanel = () => {
-    setShowMenuPanel(false);
-  };
+  const logoutItem = isAuthenticated
+    ? { icon: FaSignOutAlt, label: "LogOut", route: "/" }
+    : null;
 
-  const handleIconClick = (label: string) => {
-    if (["Manage Recipe", "Clipboard List", "Favorites"].includes(label)) {
-      if (!isAuthenticated) {
-        router.push("/Login_Register/Login");
-        return;
-      }
-
-      switch (label) {
-        case "Manage Recipe":
-          toggleMenuPanel();
-          break;
-        case "Clipboard List":
-          router.push("/RecipeManagement/ClipboardList");
-          break;
-        case "Favorites":
-          router.push("/RecipeManagement/FavoritePage");
-          break;
-      }
-    } else if (label === "Logout") {
+  const handleClick = (
+    item: typeof navItems[0] | (typeof logoutItem)
+  ) => {
+    if (
+      !isAuthenticated &&
+      item &&
+      [
+        "Manage Recipe",
+        "Recipe Forum",
+        "Favorites",
+        "Recipe Challenge",
+      ].includes(item.label)
+    ) {
+      router.push("/Login_Register/Login");
+      return;
+    }
+    if (item && item.label.toLowerCase() === "logout") {
       logout();
-      router.push("/");
+      toast.success("You have successfully logged out.");
+      router.push(item.route);
+    } else if (item) {
+      router.push(item.route);
     }
   };
 
-  const iconData = [
-    { icon: FaHome, label: "Home", href: "/" },
-    { icon: FaUtensils, label: "Manage Recipe", restricted: true },
-    { icon: FaClipboardList, label: "Clipboard List", restricted: true },
-    { icon: FaHeart, label: "Favorites", restricted: true },
-    { icon: FaCog, label: "Settings", href: "/Settings" },
-    ...(isAuthenticated ? [{ icon: FaSignOutAlt, label: "Logout" }] : []),
-  ];
-
   return (
-    <>
-      <div
-        className={`bg-green-800 text-white fixed top-0 left-0 h-full flex flex-col items-center py-30 space-y-15 transition-all duration-300 overflow-visible
-        ${isOpen ? "w-16" : "w-0"}`}
-      >
-        {iconData.map(({ icon: Icon, label, href }, i) => {
-          const isHovered = hoveredIndex === i;
-          const isActive = activeIndex === i;
-          const showLabel = isHovered || (!isHovered && isActive);
-
-          const iconElement = (
-            <Icon
-              size={24}
-              className="cursor-pointer hover:text-yellow-400 transition-all duration-300"
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => {
-                if (!href) handleIconClick(label);
-              }}
-            />
-          );
-
-          return href ? (
+    <div
+      className={`
+        fixed top-16 left-0 h-full bg-green-800 text-white
+        flex flex-col justify-between items-center
+        transition-all duration-300
+        ${isOpen ? "w-16" : "w-0"}
+      `}
+    >
+      {/* Navigation Icons */}
+      <div className="flex flex-col items-center py-8 space-y-8">
+        {navItems.map((item, idx) => {
+          const IconComponent = item.icon;
+          const isActive =
+            pathname === item.route ||
+            pathname.startsWith(item.route + "/");
+          return (
             <Link
-              key={i}
-              href={href}
-              className="relative flex items-center justify-center w-full"
+              key={idx}
+              href={item.route}
+              onClick={(e) => {
+                e.preventDefault();
+                handleClick(item);
+              }}
+              className="group relative flex items-center justify-center w-full py-3 cursor-pointer"
             >
-              {iconElement}
-              {showLabel && (
-                <span className="absolute left-full ml-2 bg-black whitespace-nowrap text-white text-xs rounded px-2 py-1 z-50">
-                  {label}
-                </span>
-              )}
+              <IconComponent
+                className={`text-2xl transition-colors duration-200 ${
+                  isActive
+                    ? 'text-yellow-400'
+                    : 'text-white group-hover:text-yellow-300'
+                }`}
+              />
+              {/* Tooltip */}
+              <span
+                className="
+                  absolute top-full left-1/2 transform -translate-x-1/2
+                  mt-0 translate-y-0
+                  px-2 py-1 text-white text-xs rounded-lg
+                  opacity-0 group-hover:opacity-100 group-hover:translate-y-0
+                  transition-all duration-200 ease-out shadow-lg
+                  pointer-events-none
+                "
+              >
+                {item.label}
+              </span>
             </Link>
-          ) : (
-            <div
-              key={i}
-              className="relative flex items-center justify-center w-full"
-            >
-              {iconElement}
-              {showLabel && (
-                <span className="absolute left-full ml-2 whitespace-nowrap bg-black text-white text-xs rounded px-2 py-1 z-50">
-                  {label}
-                </span>
-              )}
-            </div>
           );
         })}
       </div>
 
-      {showMenuPanel && (
-        <div className="fixed top-16 left-16 h-[calc(100%-4rem)] z-50">
-          <MenuPanel onHideMenuPanel={hideMenuPanel} />
-        </div>
-      )}
-    </>
+      {/* Logout at Bottom */}
+      {logoutItem && (
+  <div className="flex flex-col items-center mb-8">
+    <Link
+      href={logoutItem.route}
+      onClick={(e) => {
+        e.preventDefault();
+        handleClick(logoutItem);
+      }}
+      className="group relative flex items-center justify-center w-full py-3 cursor-pointer"
+    >
+      {/* Logout Icon with hover color change */}
+      {React.createElement(logoutItem.icon, {
+        className: `mb-24 text-2xl transition-colors duration-200
+          text-white group-hover:text-red-500`,
+      })}
+
+      {/* Tooltip (popup) on hover */}
+      <span
+        className="
+          absolute top-full left-1/2 transform -translate-x-1/2
+          mt-2 px-2 py-1 text-white text-xs rounded-md
+          opacity-0 group-hover:opacity-100 group-hover:translate-y-1
+          transition-all duration-200 ease-out shadow-lg
+          pointer-events-none z-10
+        "
+      >
+        {logoutItem.label}
+      </span>
+    </Link>
+  </div>
+)}
+
+    </div>
   );
 };
 

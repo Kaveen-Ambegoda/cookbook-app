@@ -22,33 +22,33 @@ const FavoritePage = () => {
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchFavorites = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in to view your favorites.");
+      router.push("/login"); // change this to your actual login route
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/FavoriteRecipes`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setFavorites(response.data);
+    } catch (error) {
+      console.error("Failed to fetch favorites:", error);
+      toast.error("Could not load favorite recipes.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFavorites = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Please log in to view your favorites.");
-        router.push("/login"); // change this to your actual login route
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/FavoriteRecipes`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setFavorites(response.data);
-      } catch (error) {
-        console.error("Failed to fetch favorites:", error);
-        toast.error("Could not load favorite recipes.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchFavorites();
   }, [router]);
 
@@ -63,7 +63,12 @@ const FavoritePage = () => {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xd:grid-cols-4 gap-8 p-4">
           {favorites.map((recipe) => (
-            <HomeRecipeCard key={recipe.id} recipe={recipe} />
+            <HomeRecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              isFavorite={true}
+              onFavoriteChange={fetchFavorites}
+            />
           ))}
         </div>
       )}
