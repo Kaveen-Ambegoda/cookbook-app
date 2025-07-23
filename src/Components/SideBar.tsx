@@ -63,7 +63,7 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
       router.push("/Login_Register/Login");
       return;
     }
-    if (item && item.label === "Logout") {
+    if (item && item.label.toLowerCase() === "logout") {
       logout();
       toast.success("You have successfully logged out.");
       router.push(item.route);
@@ -77,7 +77,7 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
       className={`
         fixed top-16 left-0 h-full bg-green-800 text-white
         flex flex-col justify-between items-center
-        overflow-hidden transition-all duration-300
+        transition-all duration-300
         ${isOpen ? "w-16" : "w-0"}
       `}
     >
@@ -150,6 +150,7 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
           pointer-events-none z-10
         "
       >
+        {logoutItem.label}
       </span>
     </Link>
   </div>
