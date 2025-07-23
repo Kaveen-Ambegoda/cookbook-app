@@ -35,7 +35,7 @@ const HomePage = () => {
 
   return (
     <div>
-      <HomeNavBar />
+      <HomeNavBar />      
       <Welcome />
       <h1 className="text-green-700 text-2xl font-medium pl-4 pb-2">All Recipes</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-8 p-4">
