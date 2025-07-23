@@ -5,6 +5,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { useReviewCount } from "./useReviewCount";
 import useIsFavorited from "./useIsFavorited";
+import { useRouter } from "next/navigation";
 
 import {
   FaHeart,
@@ -35,6 +36,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
 }) => {
   const hookIsFavorited = useIsFavorited(recipe.id);
   const reviewCount = useReviewCount(recipe.id);
+  const router = useRouter()
 
   // Prefer the prop if passed, else fall back to hook
   const initialIsFavorited =
@@ -51,6 +53,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Please log in to favorite this recipe.");
+      router.push("/Login_Register/Login"); 
       return;
     }
 
