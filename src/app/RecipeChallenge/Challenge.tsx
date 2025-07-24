@@ -1,3 +1,5 @@
+// components/Challenge.tsx
+
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,6 +19,8 @@ interface ChallengeProps {
 }
 
 const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
+  console.log("Rendering challenge:", challenge); // For debug
+
   return (
     <div>
       <div className="min-h-[80vh] rounded-lg flex items-center justify-center py-8 px-4 bg-black/10">
@@ -31,43 +35,61 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
               </p>
             )}
           </div>
+
           {/* Content Area */}
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Image section */}
+            {/* Image Section */}
             <div className="flex-shrink-0 w-full md:w-2/5">
-              <Image
-                src={challenge.img}
-                width={400}
-                height={300}
-                alt={challenge.title}
-                className="rounded-lg object-cover w-full h-full shadow-md"
-                priority
-              />
+              {challenge.img ? (
+                <Image
+                  src="/image/1.jpg"
+                  width={400}
+                  height={300}
+                  alt={challenge.title}
+                  className="rounded-lg object-cover w-full h-full shadow-md"
+                  priority
+                />
+              ) : (
+                <div className="w-full h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-500">No Image Available</span>
+                </div>
+              )}
             </div>
-            {/* Details section */}
+
+            {/* Details Section */}
             <div className="flex-1 flex flex-col">
               <div className="space-y-4 md:pt-10">
                 <div className="flex items-center text-gray-800 text-lg">
                   <FaCalendarAlt className="mr-3 text-orange-400 text-2xl" />
-                  <span>Date: <span className="font-semibold">{challenge.date}</span></span>
+                  <span>
+                    Date:{" "}
+                    <span className="font-semibold">{challenge.date}</span>
+                  </span>
                 </div>
                 <div className="flex items-center text-gray-800 text-lg">
                   <FaTrophy className="mr-3 text-orange-400 text-2xl" />
-                  <span>Sponsor: <span className="font-semibold">{challenge.sponsor}</span></span>
+                  <span>
+                    Sponsor:{" "}
+                    <span className="font-semibold">{challenge.sponsor}</span>
+                  </span>
                 </div>
               </div>
+
               {/* Action Buttons */}
               <div className="mt-auto pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <button className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition">
                   <FaShareAlt className="text-lg" />
-                  <span className="font-medium">LeaderBord </span>
+                  <span className="font-medium">LeaderBoard</span>
                 </button>
+
                 <Link
-                  href={`/RecipeChallenge/JoinChallengePage/${encodeURIComponent(challenge.title)}/VoteAndRateChallenge`}
-                  className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition">
+                  href={`/RecipeChallenge/JoinChallengePage/${challenge.id}/VoteAndRateChallenge`}
+                  className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition"
+                >
                   <FaShareAlt className="text-lg" />
-                  <span className="font-medium">Vote and Rate </span>
+                  <span className="font-medium">Vote and Rate</span>
                 </Link>
+
                 <Link
                   href={`/RecipeChallenge/JoinChallengePage/${challenge.id}`}
                   className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium w-full sm:w-auto text-center shadow-md hover:shadow-lg"

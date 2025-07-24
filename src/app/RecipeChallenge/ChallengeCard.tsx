@@ -7,7 +7,7 @@ const ChallengeCard = () => {
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    axios.get(`${apiUrl}/Challenges/details`)
+    axios.get(`${apiUrl}/api/Challenges/details`)
       .then(res => setChallenges(res.data))
       .catch(err => console.error(err));
   }, []);
