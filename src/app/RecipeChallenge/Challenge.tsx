@@ -19,7 +19,8 @@ interface ChallengeProps {
 }
 
 const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
-  console.log("Rendering challenge:", challenge); // For debug
+  console.log("Rendering challenge:", challenge);
+  console.log("Image URL:", challenge.img); // For debug
 
   return (
     <div>
@@ -41,14 +42,14 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
             {/* Image Section */}
             <div className="flex-shrink-0 w-full md:w-2/5">
               {challenge.img ? (
-                <Image
-                  src="/image/1.jpg"
+                <img
+                  src={challenge.img}
                   width={400}
                   height={300}
                   alt={challenge.title}
-                  className="rounded-lg object-cover w-full h-full shadow-md"
-                  priority
+                  style={{ borderRadius: '12px', objectFit: 'cover', width: '400px', height: '300px' }}
                 />
+
               ) : (
                 <div className="w-full h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
                   <span className="text-gray-500">No Image Available</span>

@@ -72,28 +72,65 @@ const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
   // Function to get ingredient limits from challenge requirements
   const getIngredientLimits = (challenge: ChallengeType) => {
     const requirements = challenge.requirements ?? [];
+    console.log("All requirements:", requirements); // <-- Add this line
+    const keywords = [
+      "ingredient", "ingredients", "minimum", "maximum", "at least", "no more than", "exactly", "only", "between"
+    ];
     const requirement = requirements.find((req: string) =>
-      req.toLowerCase().includes('ingredient')
+      keywords.some(keyword => req.toLowerCase().includes(keyword))
     );
+    console.log("Ingredient limit requirement found:", requirement);
 
     if (!requirement) return { min: 1, max: 10 }; // Default limits
 
     const text = requirement.toLowerCase();
-    const numbers = text.match(/\d+/g)?.map(Number) || [];
 
-    if (text.includes('exactly')) {
-      const exact = numbers[0] || 5;
+    // "exactly 3 ingredients"
+    const exactlyMatch = text.match(/exactly\s+(\d+)/);
+    if (exactlyMatch) {
+      const exact = Number(exactlyMatch[1]);
       return { min: exact, max: exact };
-    } else if (text.includes('at least') && text.includes('maximum')) {
-      return { min: numbers[0] || 1, max: numbers[1] || 10 };
-    } else if (text.includes('at least')) {
-      return { min: numbers[0] || 1, max: 10 };
-    } else if (text.includes('maximum') || text.includes('max')) {
-      return { min: 1, max: numbers[0] || 10 };
-    } else if (text.includes('only')) {
-      return { min: numbers[0] || 3, max: numbers[0] || 3 };
     }
-    
+
+    // "between 2 and 5 ingredients"
+    const betweenMatch = text.match(/between\s+(\d+)\s+and\s+(\d+)/);
+    if (betweenMatch) {
+      return { min: Number(betweenMatch[1]), max: Number(betweenMatch[2]) };
+    }
+
+    // "at least 2 ingredients"
+    const atLeastMatch = text.match(/at\s+least\s+(\d+)/);
+    if (atLeastMatch) {
+      return { min: Number(atLeastMatch[1]), max: 10 };
+    }
+
+    // "no more than 5 ingredients"
+    const noMoreThanMatch = text.match(/no more than\s+(\d+)/);
+    if (noMoreThanMatch) {
+      return { min: 1, max: Number(noMoreThanMatch[1]) };
+    }
+
+    // "maximum 5 ingredients" or "max 5 ingredients"
+    const maxMatch = text.match(/max(?:imum)?\s+(\d+)/);
+    if (maxMatch) {
+      return { min: 1, max: Number(maxMatch[1]) };
+    }
+
+    // "only 3 ingredients"
+    const onlyMatch = text.match(/only\s+(\d+)/);
+    if (onlyMatch) {
+      const only = Number(onlyMatch[1]);
+      return { min: only, max: only };
+    }
+
+    // fallback: first number is min, second is max (if present)
+    const numbers = text.match(/\d+/g)?.map(Number) || [];
+    if (numbers.length === 2) {
+      return { min: numbers[0], max: numbers[1] };
+    } else if (numbers.length === 1) {
+      return { min: numbers[0], max: numbers[0] };
+    }
+
     return { min: 1, max: 10 };
   };
 
@@ -350,7 +387,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
     );
   }
 
-  const ingredientLimits = getIngredientLimits(challenge);
+  const ingredientLimits = getIngredientLimits(submitSuccess && challengeDetail ? challengeDetail : challenge);
 
   // After choose category go to the submit recipe page
   if (submitSuccess) {
