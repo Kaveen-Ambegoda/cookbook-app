@@ -1,16 +1,14 @@
 "use client";
-
-import { Recipe, fetchRecipes, updateRecipe, deleteRecipe as deleteRecipeApi } from "@/app/Admin/Layouts/Data/recipeData";
+import { toggleRecipeVisibility } from "@/app/Admin/Layouts/Data/recipeData";
+import { Recipe, fetchRecipes, deleteRecipe as deleteRecipeApi } from "@/app/Admin/Layouts/Data/recipeData";
 import { useEffect, useState, useMemo } from "react";
-import { Eye, EyeOff, Trash2, Info, X, Search, Filter, RefreshCw, AlertCircle, CheckCircle, Users, Calendar, SortAsc, SortDesc } from "lucide-react";
+import { Eye, EyeOff, Trash2, Info, X, Search, RefreshCw, AlertCircle, CheckCircle, Users, Clock, ChefHat } from "lucide-react";
 
 interface FilterState {
   search: string;
   visibility: 'all' | 'visible' | 'hidden';
-  author: string;
-  sortBy: 'name' | 'author' | 'users' | 'recent';
+  sortBy: 'name' | 'recent';
   sortOrder: 'asc' | 'desc';
-  userFilter: string;
 }
 
 interface Toast {
@@ -26,66 +24,52 @@ export default function RecipeList() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [showFilters, setShowFilters] = useState<boolean>(false);
   
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     visibility: 'all',
-    author: '',
     sortBy: 'name',
-    sortOrder: 'asc',
-    userFilter: ''
+    sortOrder: 'asc'
   });
 
-  // Get unique authors and users for filter dropdowns
-  const uniqueAuthors = useMemo(() => {
-    const authors = recipes.map(recipe => recipe.author);
-    return [...new Set(authors)].sort();
-  }, [recipes]);
-
-  const uniqueUsers = useMemo(() => {
-    const users = recipes.flatMap(recipe => recipe.users);
-    return [...new Set(users)].sort();
-  }, [recipes]);
-
-  // Filter and sort recipes
+  // Filter and sort recipes with better logic
   const filteredRecipes = useMemo(() => {
-    let filtered = recipes.filter(recipe => {
-      const matchesSearch = recipe.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-                           recipe.description.toLowerCase().includes(filters.search.toLowerCase()) ||
-                           recipe.ingredients.some(ing => ing.toLowerCase().includes(filters.search.toLowerCase()));
-      
-      const matchesVisibility = filters.visibility === 'all' || 
-                               (filters.visibility === 'visible' && recipe.visible) ||
-                               (filters.visibility === 'hidden' && !recipe.visible);
-      
-      const matchesAuthor = !filters.author || recipe.author === filters.author;
-      
-      const matchesUser = !filters.userFilter || recipe.users.includes(filters.userFilter);
-      
-      return matchesSearch && matchesVisibility && matchesAuthor && matchesUser;
+    const normalizedSearch = (filters.search ?? '').toLowerCase();
+
+    // Filter recipes
+    let filtered = (recipes ?? []).filter(recipe => {
+      const name = recipe?.title ?? '';
+      const description = recipe?.description ?? '';
+      const ingredients = recipe?.ingredients ?? '';
+      const category = recipe?.category ?? '';
+
+      const matchesSearch = !normalizedSearch || 
+        name.toLowerCase().includes(normalizedSearch) ||
+        description.toLowerCase().includes(normalizedSearch) ||
+        ingredients.toLowerCase().includes(normalizedSearch) ||
+        category.toLowerCase().includes(normalizedSearch);
+
+      const matchesVisibility =
+        filters.visibility === 'all' ||
+        (filters.visibility === 'visible' && recipe?.visible) ||
+        (filters.visibility === 'hidden' && !recipe?.visible);
+
+      return matchesSearch && matchesVisibility;
     });
 
     // Sort recipes
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (filters.sortBy) {
         case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'author':
-          comparison = a.author.localeCompare(b.author);
-          break;
-        case 'users':
-          comparison = a.users.length - b.users.length;
+          comparison = (a?.title ?? '').localeCompare(b?.title ?? '');
           break;
         case 'recent':
-          // Since we don't have timestamps, we'll sort by ID (assuming higher ID = more recent)
-          comparison = (a.id || 0) - (b.id || 0);
+          comparison = (a?.id ?? 0) - (b?.id ?? 0);
           break;
       }
-      
+
       return filters.sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -98,14 +82,14 @@ export default function RecipeList() {
     setToasts(prev => [...prev, { id, type, message }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, 5000);
+    }, 4000);
   };
 
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
-  // Fetch recipes with error handling
+  // Fetch recipes
   const loadRecipes = async () => {
     setLoading(true);
     setError(null);
@@ -113,7 +97,7 @@ export default function RecipeList() {
     try {
       const data = await fetchRecipes();
       setRecipes(data);
-      addToast('success', `Loaded ${data.length} recipes successfully`);
+      addToast('success', `Loaded ${data.length} recipes`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch recipes';
       setError(errorMessage);
@@ -127,34 +111,64 @@ export default function RecipeList() {
     loadRecipes();
   }, []);
 
-  // Toggle visibility with error handling
+  // Toggle visibility
   const toggleVisibility = async (id: number) => {
+    if (!id) {
+      addToast('error', 'Invalid recipe ID');
+      return;
+    }
+
+    // Find current recipe to get current visibility state
+    const currentRecipe = recipes.find(r => r.id === id);
+    if (!currentRecipe) {
+      addToast('error', 'Recipe not found');
+      return;
+    }
+
+    console.log(`Before toggle - Recipe ID: ${id}, Current visibility: ${currentRecipe.visible}`);
+
     try {
-      const recipe = recipes.find(r => r.id === id);
-      if (!recipe) return;
+      // Optimistically update UI first
+      const newVisibility = !currentRecipe.visible;
+      setRecipes((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, visible: newVisibility } : r))
+      );
 
-      const updatedRecipe = { ...recipe, visible: !recipe.visible };
-      await updateRecipe(id, updatedRecipe);
-
-      setRecipes(recipes.map(r => (r.id === id ? updatedRecipe : r)));
-      addToast('success', `Recipe ${updatedRecipe.visible ? 'shown' : 'hidden'} successfully`);
+      // Call API - send empty body to let backend toggle automatically
+      const result = await toggleRecipeVisibility(id);
+      
+      console.log(`After API call - Recipe ID: ${id}, New visibility: ${result.visible}`);
+      
+      // Update with actual result from server
+      setRecipes((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, visible: result.visible } : r))
+      );
+      
+      addToast('success', `Recipe ${result.visible ? 'shown' : 'hidden'} successfully`);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to toggle visibility';
+      // Revert optimistic update on error
+      setRecipes((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, visible: currentRecipe.visible } : r))
+      );
+      
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update visibility';
       addToast('error', errorMessage);
+      console.error('Toggle visibility error:', err);
     }
   };
 
-  // Delete recipe with error handling
+
+  // Delete recipe
   const deleteRecipe = async (id: number) => {
     const recipe = recipes.find(r => r.id === id);
     if (!recipe) return;
 
-    if (!confirm(`Are you sure you want to delete "${recipe.name}"? This action cannot be undone.`)) return;
+    if (!confirm(`Delete "${recipe.title}"? This cannot be undone.`)) return;
 
     try {
       await deleteRecipeApi(id);
       setRecipes(recipes.filter(recipe => recipe.id !== id));
-      addToast('success', `Recipe "${recipe.name}" deleted successfully`);
+      addToast('success', `"${recipe.title}" deleted`);
 
       if (selectedRecipe?.id === id) {
         setSelectedRecipe(null);
@@ -172,57 +186,49 @@ export default function RecipeList() {
     setShowDetails(true);
   };
 
-  // Close details modal
-  const closeDetails = () => {
-    setShowDetails(false);
-  };
-
-  // Reset filters
-  const resetFilters = () => {
-    setFilters({
-      search: '',
-      visibility: 'all',
-      author: '',
-      sortBy: 'name',
-      sortOrder: 'asc',
-      userFilter: ''
-    });
-  };
-
   // Update filter
   const updateFilter = (key: keyof FilterState, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  // Get image URL with fallback
+  const getImageUrl = (imageUrl?: string) => {
+    if (!imageUrl) return '/api/placeholder/300/200';
+    if (imageUrl.startsWith('http')) return imageUrl;
+    return `/images/recipes/${imageUrl}`;
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <RefreshCw className="animate-spin mr-2" size={20} />
-        <span>Loading recipes...</span>
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center">
+          <RefreshCw className="animate-spin mx-auto mb-4 text-blue-500" size={32} />
+          <p className="text-gray-600">Loading recipes...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`p-3 rounded-lg shadow-lg flex items-center gap-2 min-w-[300px] ${
+            className={`p-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[320px] animate-slide-in ${
               toast.type === 'success' ? 'bg-green-500 text-white' :
               toast.type === 'error' ? 'bg-red-500 text-white' :
               'bg-blue-500 text-white'
             }`}
           >
-            {toast.type === 'success' && <CheckCircle size={16} />}
-            {toast.type === 'error' && <AlertCircle size={16} />}
-            {toast.type === 'info' && <Info size={16} />}
-            <span className="flex-1">{toast.message}</span>
+            {toast.type === 'success' && <CheckCircle size={20} />}
+            {toast.type === 'error' && <AlertCircle size={20} />}
+            {toast.type === 'info' && <Info size={20} />}
+            <span className="flex-1 font-medium">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="hover:opacity-70"
+              className="hover:opacity-70 p-1"
             >
               <X size={16} />
             </button>
@@ -231,21 +237,20 @@ export default function RecipeList() {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-2xl font-bold">Recipe Management</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
-          >
-            <Filter size={16} />
-            Filters
-          </button>
+      <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <ChefHat className="text-orange-500" size={32} />
+              Recipe Management
+            </h1>
+            <p className="text-gray-600 mt-1">Manage and organize your recipe collection</p>
+          </div>
           <button
             onClick={loadRecipes}
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 transition-colors"
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={18} />
             Refresh
           </button>
         </div>
@@ -253,12 +258,12 @@ export default function RecipeList() {
 
       {/* Error display */}
       {error && (
-        <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
-          <AlertCircle size={20} />
-          <span>{error}</span>
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle size={20} className="text-red-500" />
+          <span className="flex-1">{error}</span>
           <button
             onClick={loadRecipes}
-            className="ml-auto px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
           >
             Retry
           </button>
@@ -266,263 +271,135 @@ export default function RecipeList() {
       )}
 
       {/* Filters */}
-      {showFilters && (
-        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search recipes..."
-                  value={filters.search}
-                  onChange={(e) => updateFilter('search', e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Visibility */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Visibility</label>
-              <select
-                value={filters.visibility}
-                onChange={(e) => updateFilter('visibility', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Recipes</option>
-                <option value="visible">Visible Only</option>
-                <option value="hidden">Hidden Only</option>
-              </select>
-            </div>
-
-            {/* Author */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Author</label>
-              <select
-                value={filters.author}
-                onChange={(e) => updateFilter('author', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Authors</option>
-                {uniqueAuthors.map(author => (
-                  <option key={author} value={author}>{author}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* User Filter */}
-            <div>
-              <label className="block text-sm font-medium mb-1">User</label>
-              <select
-                value={filters.userFilter}
-                onChange={(e) => updateFilter('userFilter', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Users</option>
-                {uniqueUsers.map(user => (
-                  <option key={user} value={user}>{user}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort By */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Sort By</label>
-              <select
-                value={filters.sortBy}
-                onChange={(e) => updateFilter('sortBy', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="name">Name</option>
-                <option value="author">Author</option>
-                <option value="users">User Count</option>
-                <option value="recent">Most Recent</option>
-              </select>
-            </div>
-
-            {/* Sort Order */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Sort Order</label>
-              <button
-                onClick={() => updateFilter('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2"
-              >
-                {filters.sortOrder === 'asc' ? <SortAsc size={16} /> : <SortDesc size={16} />}
-                {filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-              </button>
+      <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Search */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Search Recipes</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search by name, ingredients, or category..."
+                value={filters.search}
+                onChange={(e) => updateFilter('search', e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">
-              Showing {filteredRecipes.length} of {recipes.length} recipes
-            </span>
-            <button
-              onClick={resetFilters}
-              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+          {/* Visibility Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Visibility</label>
+            <select
+              value={filters.visibility}
+              onChange={(e) => updateFilter('visibility', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              Reset Filters
-            </button>
+              <option value="all">All Recipes</option>
+              <option value="visible">Visible Only</option>
+              <option value="hidden">Hidden Only</option>
+            </select>
           </div>
         </div>
-      )}
 
-      {/* Recipe Details Modal */}
-      {showDetails && selectedRecipe && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-          <div className="bg-white rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-2xl font-bold">{selectedRecipe.name}</h3>
-                <button
-                  onClick={closeDetails}
-                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="font-semibold">Author:</span> {selectedRecipe.author}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Status:</span>
-                    {selectedRecipe.visible ? (
-                      <span className="flex items-center gap-1 text-green-600">
-                        <Eye size={16} /> Visible
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-red-600">
-                        <EyeOff size={16} /> Hidden
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="font-semibold">Description:</span>
-                  <p className="mt-1 text-gray-700">{selectedRecipe.description}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-lg mb-2">Ingredients:</h4>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {selectedRecipe.ingredients.map((ingredient, index) => (
-                      <li key={index} className="text-gray-700">{ingredient}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-lg mb-2">Instructions:</h4>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedRecipe.instructions}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <Users size={18} />
-                    Associated Users ({selectedRecipe.users.length}):
-                  </h4>
-                  {selectedRecipe.users.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedRecipe.users.map((user, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                          {user}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No users associated with this recipe</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex justify-between items-center mt-4 pt-4 border-t">
+          <span className="text-sm text-gray-600">
+            Showing {filteredRecipes.length} of {recipes.length} recipes
+          </span>
         </div>
-      )}
+      </div>
 
-      {/* Recipe List */}
-      <div className="space-y-4">
+      {/* Recipe Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecipes.map(recipe => (
           <div
             key={recipe.id}
-            className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
+            className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-all duration-200 overflow-hidden group"
           >
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold mb-1">{recipe.name}</h3>
-                <p className="text-gray-600 mb-2">Author: {recipe.author}</p>
-                <p className="text-gray-700 text-sm mb-3 line-clamp-2">{recipe.description}</p>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    {recipe.visible ? (
-                      <>
-                        <Eye size={16} className="text-green-600" />
-                        <span className="text-green-600">Visible</span>
-                      </>
-                    ) : (
-                      <>
-                        <EyeOff size={16} className="text-red-600" />
-                        <span className="text-red-600">Hidden</span>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <Users size={16} />
-                    <span>{recipe.users.length} users</span>
-                  </div>
-                  
-                  <div className="text-gray-500">
-                    {recipe.ingredients.length} ingredients
-                  </div>
+            {/* Recipe Image */}
+            <div className="relative h-48 bg-gray-100 overflow-hidden">
+              <img
+                src={getImageUrl(recipe.image)}
+                alt={recipe.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/api/placeholder/300/200';
+                }}
+              />
+              <div className="absolute top-3 right-3">
+                {recipe.visible ? (
+                  <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                    <Eye size={12} />
+                    Visible
+                  </span>
+                ) : (
+                  <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                    <EyeOff size={12} />
+                    Hidden
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Recipe Content */}
+            <div className="p-5">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
+                {recipe.title}
+              </h3>
+              
+              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                {recipe.description || 'No description available'}
+              </p>
+
+              {/* Recipe Stats */}
+              <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                <div className="flex items-center gap-1">
+                  <Clock size={14} />
+                  <span>{recipe.cookingTime || 0} min</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users size={14} />
+                  <span>{recipe.portion || 1} servings</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              {/* Category Badge */}
+              {recipe.category && (
+                <div className="mb-4">
+                  <span className="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-medium">
+                    {recipe.category}
+                  </span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
                 <button
                   onClick={() => viewDetails(recipe)}
-                  className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2 min-w-[100px] justify-center"
+                  className="flex-1 px-3 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2 transition-colors"
                 >
-                  <Info size={16} />
-                  Details
+                  <Info size={14} />
+                  View
                 </button>
 
                 <button
                   onClick={() => toggleVisibility(recipe.id!)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 min-w-[100px] justify-center ${
+                  className={`px-3 py-2 text-sm font-medium rounded-lg flex items-center justify-center transition-colors ${
                     recipe.visible
                       ? "bg-yellow-500 hover:bg-yellow-600 text-white"
                       : "bg-green-500 hover:bg-green-600 text-white"
                   }`}
                 >
-                  {recipe.visible ? (
-                    <>
-                      <EyeOff size={16} />
-                      Hide
-                    </>
-                  ) : (
-                    <>
-                      <Eye size={16} />
-                      Show
-                    </>
-                  )}
+                  {recipe.visible ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
 
                 <button
                   onClick={() => deleteRecipe(recipe.id!)}
-                  className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center gap-2 min-w-[100px] justify-center"
+                  className="px-3 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center transition-colors"
                 >
-                  <Trash2 size={16} />
-                  Delete
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
@@ -532,30 +409,157 @@ export default function RecipeList() {
 
       {/* Empty state */}
       {filteredRecipes.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <div className="bg-gray-100 rounded-lg p-8">
+        <div className="text-center py-16">
+          <div className="bg-gray-50 rounded-xl p-12 max-w-md mx-auto">
+            <ChefHat className="mx-auto mb-4 text-gray-300" size={64} />
             {recipes.length === 0 ? (
               <>
-                <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No recipes found</h3>
-                <p className="text-gray-600">Get started by creating your first recipe.</p>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No recipes yet</h3>
+                <p className="text-gray-600">Start building your recipe collection!</p>
               </>
             ) : (
               <>
-                <Search className="mx-auto mb-4 text-gray-400" size={48} />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No recipes match your filters</h3>
-                <p className="text-gray-600 mb-4">Try adjusting your search criteria.</p>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No matches found</h3>
+                <p className="text-gray-600 mb-6">Try adjusting your search terms.</p>
                 <button
-                  onClick={resetFilters}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  onClick={() => setFilters({ search: '', visibility: 'all', sortBy: 'name', sortOrder: 'asc' })}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                 >
-                  Clear Filters
+                  Clear Search
                 </button>
               </>
             )}
           </div>
         </div>
       )}
+
+      {/* Recipe Details Modal */}
+      {showDetails && selectedRecipe && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+          <div className="bg-white rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+            <div className="p-8">
+              {/* Modal Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex-1">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{selectedRecipe.title}</h2>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <Clock size={16} />
+                      {selectedRecipe.cookingTime} minutes
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users size={16} />
+                      {selectedRecipe.portion} servings
+                    </span>
+                    <span className={`flex items-center gap-1 ${selectedRecipe.visible ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedRecipe.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                      {selectedRecipe.visible ? 'Visible' : 'Hidden'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Column - Image and Basic Info */}
+                <div className="space-y-6">
+                  <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                    <img
+                      src={getImageUrl(selectedRecipe.image)}
+                      alt={selectedRecipe.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/api/placeholder/400/300';
+                      }}
+                    />
+                  </div>
+
+                  {/* Nutritional Info */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h4 className="font-semibold text-lg mb-4">Nutritional Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Calories:</span>
+                        <span className="font-medium ml-2">{selectedRecipe.calories || 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Protein:</span>
+                        <span className="font-medium ml-2">{selectedRecipe.protein || 0}g</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Carbs:</span>
+                        <span className="font-medium ml-2">{selectedRecipe.carbs || 0}g</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Fat:</span>
+                        <span className="font-medium ml-2">{selectedRecipe.fat || 0}g</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Recipe Details */}
+                <div className="space-y-6">
+                  {selectedRecipe.description && (
+                    <div>
+                      <h4 className="font-semibold text-lg mb-3">Description</h4>
+                      <p className="text-gray-700 leading-relaxed">{selectedRecipe.description}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3">Ingredients</h4>
+                    <div className="bg-white border rounded-lg p-4">
+                      <p className="text-gray-700 whitespace-pre-line">{selectedRecipe.ingredients}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3">Instructions</h4>
+                    <div className="bg-white border rounded-lg p-4">
+                      <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedRecipe.instructions}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes slide-in {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+        .line-clamp-1 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+        }
+        .line-clamp-2 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+      `}</style>
     </div>
   );
 }
