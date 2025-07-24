@@ -39,21 +39,21 @@ export default function VoteAndRateChallenge() {
           `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}`
         );
         const data = response.data;
+        console.log("API data:", data); 
         if (Array.isArray(data)) {
-          setRecipes(
-            data.map((recipe: any) => ({
-              id: recipe.SubmissionId,
-              fullName: recipe.FullName,
-              recipeName: recipe.RecipeName,
-              recipeImage: recipe.RecipeImage,
-              recipeDescription: recipe.RecipeDescription,
-              ingredients: recipe.Ingredients,
-              challengeCategory: recipe.ChallengeCategory,
-              votes: recipe.Votes,
-              rating: recipe.Rating,
-              totalRatings: recipe.TotalRatings,
-            }))
-          );
+          const mapped = data.map((recipe: any) => ({
+            id: recipe.submissionId,
+            fullName: recipe.fullName,
+            recipeName: recipe.recipeName,
+            ingredients: recipe.ingredients,
+            recipeDescription: recipe.recipeDescription,
+            recipeImage: recipe.recipeImage,
+            challengeCategory: recipe.challengeCategory,
+            votes: recipe.votes,
+            rating: recipe.rating,
+            totalRatings: recipe.totalRatings,
+          }));
+          setRecipes(mapped);
         } else {
           setRecipes([]);
         }
@@ -182,7 +182,7 @@ export default function VoteAndRateChallenge() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="text-xl font-bold text-gray-800 line-clamp-2 mb-2">
-                            {recipe.recipeName}
+                            {recipe.recipeName || "No Name"}
                           </h3>
                         </div>
                         <div className="ml-3 flex-shrink-0">
@@ -206,7 +206,7 @@ export default function VoteAndRateChallenge() {
                       <div className="mb-4">
                         <span className="block text-sm font-semibold text-gray-700 mb-1">Ingredients:</span>
                         <ul className="list-disc list-inside text-gray-600 text-sm">
-                          {recipe.ingredients.map((ingredient: string, idx: number) => (
+                          {(Array.isArray(recipe.ingredients) ? recipe.ingredients : []).map((ingredient: string, idx: number) => (
                             <li key={idx}>{ingredient}</li>
                           ))}
                         </ul>
