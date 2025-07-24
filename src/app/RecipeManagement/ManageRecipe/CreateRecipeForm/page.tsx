@@ -1,5 +1,5 @@
 "use client"
-import RecipeForm from "@/Components/RecipeForm"
+import RecipeForm from "@/components/RecipeForm"
 
 const CreateRecipePage = () => {
   return <RecipeForm mode="create" />

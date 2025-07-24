@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import HomeRecipeCard from "@/Components/HomeRecipeCard";
-import SimpleFooter from "@/Components/SimpleFooter";
+import HomeRecipeCard from "@/components/HomeRecipeCard";
+import SimpleFooter from "@/components/SimpleFooter";
 
 interface Recipe {
   id: number;
