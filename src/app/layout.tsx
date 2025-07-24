@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import "./globals.css";
 import { Toaster } from "react-hot-toast"; 
-import SideBar from "@/Components/SideBar";
-import Navbar from "../Components/NavBar";
+import SideBar from "@/components/SideBar";
+import Navbar from "../components/NavBar";
 import { AuthProvider } from "./context/authContext";
 
 

@@ -48,7 +48,7 @@ export default function SignUpPage() {
 
       if (response.ok) {
         setMessage("User registered successfully"); 
-        router.push("/Login_Register/Login"); // Redirect to login page after successful registration
+        router.push(`/Login_Register/EmailSent?email=${encodeURIComponent(email)}`);; //redirect to email sent message 
       } else {
         setMessage(data.message || "Registration failed"); 
       }
