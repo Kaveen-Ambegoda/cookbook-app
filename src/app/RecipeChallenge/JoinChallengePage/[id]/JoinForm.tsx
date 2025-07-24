@@ -5,9 +5,10 @@ import { Link, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { getChallengeById } from "../../../../utils/challengeUtils";
-import { ChallengeType } from "../../ChallengeCard";
 import { useAuth } from "../../../context/authContext"; // adjust path if needed
 import { MdToken } from "react-icons/md";
+import { toast } from 'react-hot-toast';
+import { ChallengeType, ChallengeDetail } from "../../../../utils/challengeUtils";
 
 // Create or import axiosInstance
 const axiosInstance = axios.create({
@@ -33,10 +34,10 @@ interface RecipeData {
 }
 
 interface JoinFormProps {
-  challengeId: string;
+  challenge: ChallengeDetail | null;
 }
 
-const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
+const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
   const router = useRouter();
   const { username } = useAuth(); // get username from context
 
@@ -45,8 +46,6 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     name: username 
   });
 
-  const [challenge, setChallenge] = useState<ChallengeType | null>(null);
-  
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     challengeCategory: "",
@@ -68,20 +67,20 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [challengeDetail, setChallengeDetail] = useState<ChallengeDetail | null>(null);
 
   // Function to get ingredient limits from challenge requirements
   const getIngredientLimits = (challenge: ChallengeType) => {
-    const requirement = challenge.requirements.find(req => 
+    const requirements = challenge.requirements ?? [];
+    const requirement = requirements.find((req: string) =>
       req.toLowerCase().includes('ingredient')
     );
-    
+
     if (!requirement) return { min: 1, max: 10 }; // Default limits
-    
+
     const text = requirement.toLowerCase();
-    
-    // Extract numbers from requirement text
     const numbers = text.match(/\d+/g)?.map(Number) || [];
-    
+
     if (text.includes('exactly')) {
       const exact = numbers[0] || 5;
       return { min: exact, max: exact };
@@ -99,24 +98,23 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
   };
 
   useEffect(() => {
-    const challengeData = getChallengeById(challengeId);
-    setChallenge(challengeData);
-
-    // Autofill user info
-    const user = getCurrentUser();
-    setFormData(prev => ({
-      ...prev,
-      fullName: user.name ?? ""
-    }));
-
-    if (challengeData) {
-      const limits = getIngredientLimits(challengeData);
+    if (challenge) {
+      const limits = getIngredientLimits(challenge);
       setRecipeData(prev => ({
         ...prev,
         ingredients: Array(limits.min).fill("")
       }));
     }
-  }, [challengeId]);
+  }, [challenge]);
+
+  useEffect(() => {
+    if (username) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: username
+      }));
+    }
+  }, [username]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -210,19 +208,22 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
     setIsSubmitting(true);
     setError(null);
 
-    try {
-      const token = localStorage.getItem('token'); // or your actual storage key
+    const payload = {
+      FullName: formData.fullName,
+      ChallengeCategory: formData.challengeCategory,
+      ReasonForChoosing: formData.reasonForChoosing,
+      TermsAccepted: formData.termsAccepted,
+      ChallengeName: challenge?.title || challenge?.id,
+    };
 
-      const response = await axiosInstance.post('/api/Challenges', {
-          FullName: formData.fullName,
-          ChallengeCategory: formData.challengeCategory,
-          ReasonForChoosing: formData.reasonForChoosing,
-          TermsAccepted: formData.termsAccepted,
-          ChallengeName: challenge?.title || challengeId,
-      }, {
-          headers: {
-              'Authorization': `Bearer ${token}`,
-          },
+    console.log("Submitting payload:", payload); // 👈 This will show the payload in your browser console
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axiosInstance.post('/api/Challenges', payload, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (response.status === 200) {
@@ -265,7 +266,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
       const submitFormData = new FormData();
       submitFormData.append('RecipeName', recipeData.recipeName);
       submitFormData.append('RecipeDescription', recipeData.recipeDescription);
-      submitFormData.append('ChallengeId', challengeId);
+      submitFormData.append('ChallengeId', challenge?.id || '');
       submitFormData.append('ChallengeName', challenge?.title || '');
       submitFormData.append('ChallengeCategory', formData.challengeCategory || '');
       submitFormData.append('UserFullName', formData.fullName);
@@ -293,19 +294,53 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
       // Navigate to result page with success message
       if (response.status === 200) {
 
-        
-        router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/resultPage`);
+        //Toast Notifications with success message
+        toast.success('Recipe submitted successfully! 🎉', {
+          duration: 3000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+            padding: '16px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '500',
+          },
+          icon: '✅',
+        });
+
+        // Small delay to show toast before navigation
+        setTimeout(() => {
+          router.push(`/RecipeChallenge/JoinChallengePage/${challenge?.id}/resultPage`);
+        }, 1000);
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || 'An error occurred while submitting the recipe');
+        toast.error(err.response?.data?.message || 'Failed to submit recipe. Please try again.', {
+          duration: 4000,
+          style: {
+            background: '#EF4444',
+            color: '#fff',
+          },
+          icon: '❌',
+        });
       } else {
         setError('An unexpected error occurred');
+        toast.error('An unexpected error occurred');
       }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (submitSuccess && challenge?.id) {
+      axiosInstance
+        .get(`/api/Challenges/details/${challenge.id}`)
+        .then(res => setChallengeDetail(res.data))
+        .catch(() => setChallengeDetail(null));
+    }
+  }, [submitSuccess, challenge?.id]);
 
   if (!challenge) {
     return (
@@ -319,39 +354,37 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
 
   // After choose category go to the submit recipe page
   if (submitSuccess) {
+    if (!challengeDetail) {
+      return <div>Loading challenge details...</div>;
+    }
     return (
       <div className="text-center py-8">
         <div className="text-green-600 text-2xl mb-4">✓</div>
         <h2 className="text-xl font-semibold mb-2">Thank you for joining the challenge!</h2>
         <p className="text-gray-600">
-          We've received your application for the "{challenge.title}" at {formData.challengeCategory} Category.
+          We've received your application for the "{challengeDetail.title}" at {formData.challengeCategory} Category.
         </p>
-
         <div className="mt-6 mb-8 max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">{challenge.title}</h3>
-          <p className="text-gray-600 mb-4">
-            {challenge.description}
-          </p>
-          
+          <h3 className="text-xl font-bold text-gray-800 mb-4">{challengeDetail.title}</h3>
+          <p className="text-gray-600 mb-4">{challengeDetail.description}</p>
           <div className="border-t border-b border-gray-200 py-4 my-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium text-gray-700">Registration:</span>
-              <span>{challenge.timeline.registration}</span>
+              <span>{challengeDetail.timeline?.registration || "N/A"}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium text-gray-700">Judging:</span>
-              <span>{challenge.timeline.judging}</span>
+              <span>{challengeDetail.timeline?.judging || "N/A"}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-700">Winners Announced:</span>
-              <span>{challenge.timeline.winnersAnnounced}</span>
+              <span>{challengeDetail.timeline?.winnersAnnounced || "N/A"}</span>
             </div>
           </div>
-          
           <div className="text-left">
             <h4 className="font-semibold text-gray-800 mb-2">Requirements:</h4>
             <ul className="list-disc pl-5 space-y-1 text-gray-600">
-              {challenge.requirements.map((requirement, index) => (
+              {challengeDetail.requirements.map((requirement, index) => (
                 <li key={index}>{requirement}</li>
               ))}
             </ul>
@@ -370,7 +403,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
                 name="fullName"
                 required
                 maxLength={50}
-                value={username || formData.fullName}
+                value={formData.fullName}
                 onChange={handleChange}
                 className="mt-1 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               />
@@ -541,7 +574,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challengeId }) => {
           name="fullName"
           required
           maxLength={50}
-          value={username || formData.fullName}
+          value={formData.fullName}
           onChange={handleChange}
           className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
         />

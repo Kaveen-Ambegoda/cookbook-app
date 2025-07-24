@@ -42,25 +42,24 @@ export default function VoteAndRateChallenge() {
   async function fetchRecipes() {
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/submission/{id}`,
-        {
-          params: { challengeId }  // ✅ pass challengeId here
-        }
+        `${process.env.NEXT_PUBLIC_API_URL}/api/submission/challenge/${challengeId}`
       );
       setRecipes(
         response.data.map((recipe: any) => ({
-          id: recipe.id,
-          displayName: recipe.displayName,
-          recipeName: recipe.recipeName,
-          recipeImage: recipe.recipeImage,
-          recipeDescription: recipe.recipeDescription,
-          ingredients: recipe.ingredients,
-          challengeCategory: recipe.challengeCategory,
-          votes: recipe.votesCount,
-          rating: recipe.averageRating,
-          totalRatings: recipe.userRating ? 1 : 0, // you can also add: recipe.totalRatings if returned
+          id: recipe.SubmissionId,
+          challengeId: recipe.ChallengeId,
+          displayName: recipe.FullName,
+          recipeName: recipe.RecipeName,
+          recipeImage: recipe.RecipeImage,
+          recipeDescription: recipe.RecipeDescription,
+          ingredients: recipe.Ingredients,
+          challengeCategory: recipe.ChallengeCategory,
+          votes: recipe.Votes,
+          rating: recipe.Rating,
+          totalRatings: recipe.TotalRatings,
         }))
       );
+
     } catch (err) {
       console.error("Error fetching recipes:", err);
     }
