@@ -7,35 +7,38 @@ const VerifyEmailPage = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
 
-    if (!token) {
-      setStatus('error');
-      setMessage('Invalid or missing verification token.');
-      return;
-    }
+  if (!token) {
+    setStatus('error');
+    setMessage('Invalid or missing verification token.');
+    return;
+  }
 
-    fetch(`https://localhost:7205/api/Auth/verify-email?token=${encodeURIComponent(token)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
+  fetch(`https://localhost:7205/api/Auth/verify-email?token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token }), // Optional body since you use query param
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error('Verification failed');
+      return res.json();
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('Verification failed');
-        return res.json();
-      })
-      .then((data) => {
-        setStatus('success');
-        setMessage(data.message || 'Email successfully verified. You can now log in.');
-      })
-      .catch((err) => {
-        setStatus('error');
-        setMessage('Email verification failed or token expired.');
-      });
-  }, []);
+    .then((data) => {
+      setStatus('success');
+      setMessage(data.message || 'Email successfully verified. Redirecting to login...');
+      setTimeout(() => {
+        window.location.href = '/Login_Register/Login'; // Redirect after success
+      }, 3000); // wait 3 seconds before redirect
+    })
+    .catch((err) => {
+      setStatus('error');
+      setMessage('Email verification failed or token expired.');
+    });
+}, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
