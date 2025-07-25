@@ -2,9 +2,11 @@
 import { useState, useEffect } from "react"
 import { useForm, FormProvider, useFormContext } from "react-hook-form"
 import { motion } from "framer-motion"
-import axios from "axios"
+import axios from "axios" // Keep axios for general use, but use API for authenticated calls
+import API from "@/app/utils/axiosInstance" // Import the configured axios instance
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
+import { Button } from "@/components/ui/button" // Import Button component for styling
 
 type RecipeFormData = {
   title: string
@@ -15,7 +17,7 @@ type RecipeFormData = {
   diet?: string
   occasion?: string
   skillLevel?: string
-  cookingTime: string // Changed to string for select input
+  cookingTime: string
   portion: number
   calories: number
   protein: number
@@ -31,9 +33,10 @@ interface RecipeFormProps {
 
 const steps = ["Basic Info", "Details", "Nutrition & Image"]
 
-const mealTypeOptions = ["Breakfast", "Lunch", "Dinner", "Snack", "Dessert", "Drinks & Smoothies"]
+// Export these options so they can be used in the filter sheet
+export const mealTypeOptions = ["Breakfast", "Lunch", "Dinner", "Snack", "Dessert", "Drinks & Smoothies"]
 
-const cuisineOptions = [
+export const cuisineOptions = [
   "Sri Lankan",
   "Indian",
   "Chinese",
@@ -46,7 +49,7 @@ const cuisineOptions = [
   "Japanese",
 ]
 
-const dietOptions = [
+export const dietOptions = [
   "Vegetarian",
   "Vegan",
   "Gluten-Free",
@@ -58,7 +61,7 @@ const dietOptions = [
   "Weight-Loss",
 ]
 
-const occasionOptions = [
+export const occasionOptions = [
   "Family Dinners",
   "Quick Weeknight Meals",
   "Party & Celebration",
@@ -67,33 +70,43 @@ const occasionOptions = [
   "Budget Meals",
 ]
 
-const skillLevelOptions = ["Beginner-Friendly", "Intermediate", "Advanced"]
+export const skillLevelOptions = ["Beginner-Friendly", "Intermediate", "Advanced"]
 
-// New options for Cooking Time
-const cookingTimeOptions = [
+export const cookingTimeOptions = [
   { label: "Under 15 Minutes", value: "15" },
   { label: "Under 30 Minutes", value: "30" },
   { label: "30–60 Minutes", value: "60" },
-  { label: "Over 1 Hour", value: "120" }, // Using 120 minutes as a representative value for "Over 1 Hour"
+  { label: "Over 1 Hour", value: "120" },
 ]
 
-// Helper to map numerical cooking time from backend to select option value
 const getCookingTimeOptionValue = (time: number): string => {
   if (time <= 15) return "15"
   if (time <= 30) return "30"
   if (time <= 60) return "60"
-  return "120" // For anything over 60 minutes
+  return "120"
+}
+
+// Helper function to extract filename from URL
+const getFileNameFromUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url)
+    const pathSegments = urlObj.pathname.split("/")
+    return pathSegments[pathSegments.length - 1]
+  } catch (e) {
+    console.error("Invalid URL for filename extraction:", url, e)
+    return "unknown_image"
+  }
 }
 
 function CategorySelect({
   name,
   label,
-  options, // Now accepts { label: string; value: string }[] or string[]
+  options,
   required = false,
 }: {
   name: keyof RecipeFormData
   label: string
-  options: string[] | { label: string; value: string }[] // Updated type
+  options: string[] | { label: string; value: string }[]
   required?: boolean
 }) {
   const {
@@ -137,8 +150,10 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
   const [isLoading, setIsLoading] = useState(mode === "update")
   const [ingredientsPreview, setIngredientsPreview] = useState<string[]>([])
   const [instructionsPreview, setInstructionsPreview] = useState<string[]>([])
-  const [currentImageUrl, setCurrentImageUrl] = useState<string>("")
+  const [currentImage, setCurrentImage] = useState<string>("")
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [usePreviousImage, setUsePreviousImage] = useState(false)
+  const [previousImageFileName, setPreviousImageFileName] = useState<string | null>(null) // New state for filename
 
   const methods = useForm<RecipeFormData>()
   const {
@@ -148,6 +163,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
     reset,
     watch,
     trigger,
+    setValue,
   } = methods
 
   const watchedIngredients = watch("ingredients")
@@ -184,23 +200,22 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
       const file = watchedImageFile[0]
       const objectUrl = URL.createObjectURL(file)
       setImagePreviewUrl(objectUrl)
-
+      setUsePreviousImage(false) // A new file is selected, so don't use previous
       return () => {
         URL.revokeObjectURL(objectUrl)
       }
     } else {
       setImagePreviewUrl(null)
     }
-  }, [watchedImageFile]) //Removed imagePreviewUrl from dependencies
-
+  }, [watchedImageFile])
 
   useEffect(() => {
     if (mode === "update" && recipeId && isClient) {
       setIsLoading(true)
-      axios
-        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${recipeId}`)
+      API.get(`/api/Recipe/${recipeId}`)
         .then((res) => {
           const data = res.data
+          console.log("Fetched recipe data:", data)
 
           const parsedIngredients =
             data.ingredients
@@ -213,24 +228,51 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
               .map((i: string) => i.replace(/^\d+\.\s*/, "").trim())
               .join(". ") || ""
 
+          // Prioritize individual category fields if they exist, falling back to categoriesArray
           const categoriesArray = data.categories || []
+          const mealType = data.mealType || categoriesArray[0] || ""
+          const cuisine = data.cuisine || categoriesArray[1] || ""
+          const diet = data.diet || categoriesArray[2] || ""
+          const occasion = data.occasion || categoriesArray[3] || ""
+          const skillLevel = data.skillLevel || categoriesArray[4] || ""
 
-          reset({
+          const resetData = {
             ...data,
             ingredients: parsedIngredients,
             instructions: parsedInstructions,
-            mealType: categoriesArray[0] || "",
-            cuisine: categoriesArray[1] || "",
-            diet: categoriesArray[2] || "",
-            occasion: categoriesArray[3] || "",
-            skillLevel: categoriesArray[4] || "",
-            cookingTime: getCookingTimeOptionValue(data.cookingTime), // Map numerical time to option value
-          })
+            mealType: mealType,
+            cuisine: cuisine,
+            diet: diet,
+            occasion: occasion,
+            skillLevel: skillLevel,
+            cookingTime: getCookingTimeOptionValue(data.cookingTime),
+          }
+          console.log("Data being passed to reset:", resetData)
 
-          setCurrentImageUrl(data.imageUrl || "")
+          reset(resetData)
+
+          console.log("Image URL from backend (data.image):", data.image)
+          setCurrentImage(data.image || "")
+          setUsePreviousImage(!!data.image) // Set to true if an image exists
+
+          // Extract and set the filename
+          if (data.image) {
+            setPreviousImageFileName(getFileNameFromUrl(data.image))
+          } else {
+            setPreviousImageFileName(null)
+          }
+
+          console.log("Current image state after fetch:", data.image || "")
         })
-        .catch(() => {
-          toast.error("Failed to load recipe data")
+        .catch((err) => {
+          console.error("Error fetching recipe data:", err)
+          let errorMessage = "Failed to load recipe data."
+          if (axios.isAxiosError(err) && err.response) {
+            errorMessage += ` Status: ${err.response.status}. Message: ${err.response.data?.message || err.message}`
+          } else if (err instanceof Error) {
+            errorMessage += ` Error: ${err.message}`
+          }
+          toast.error(errorMessage)
           router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
         })
         .finally(() => setIsLoading(false))
@@ -262,7 +304,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
         "diet",
         "occasion",
         "skillLevel",
-        "cookingTime", // Included cookingTime in validation
+        "cookingTime",
         "portion",
       ])
     } else if (step === 1) {
@@ -280,6 +322,13 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 0))
 
+  const handleUsePreviousImage = () => {
+    setUsePreviousImage(true)
+    setImagePreviewUrl(null) // Clear any new image preview
+    setValue("imageFile", null as any) // Clear the file input value in react-hook-form
+    toast.success("Will use the previously uploaded image.")
+  }
+
   const onSubmit = async (data: RecipeFormData) => {
     try {
       const formData = new FormData()
@@ -289,8 +338,13 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
       const categories = [data.mealType, data.cuisine, data.diet, data.occasion, data.skillLevel].filter(Boolean)
 
       formData.append("categories", JSON.stringify(categories))
+      formData.append("mealType", data.mealType || "")
+      formData.append("cuisine", data.cuisine || "")
+      formData.append("diet", data.diet || "")
+      formData.append("occasion", data.occasion || "")
+      formData.append("skillLevel", data.skillLevel || "")
 
-      formData.append("cookingTime", Number(data.cookingTime).toString()) // Convert string value back to number
+      formData.append("cookingTime", Number(data.cookingTime).toString())
       formData.append("portion", data.portion.toString())
 
       const formattedIngredients = formatIngredientsForSubmission(data.ingredients)
@@ -304,9 +358,16 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
       formData.append("fat", data.fat.toString())
       formData.append("carbs", data.carbs.toString())
 
-      if (data.imageFile && data.imageFile.length > 0) {
+      // Only append imageFile if a new one is selected AND we're not explicitly using the previous image
+      if (data.imageFile && data.imageFile.length > 0 && !usePreviousImage) {
         formData.append("image", data.imageFile[0])
       }
+      // If in update mode and using previous image, we explicitly tell the backend to keep it
+      // by NOT sending a new 'image' field. Your backend should handle this by not updating the image.
+      // If your backend requires the old URL to be sent explicitly, you would uncomment this:
+      // else if (mode === "update" && usePreviousImage && currentImage) {
+      //   formData.append("image", currentImage); // Send the old URL back
+      // }
 
       const token = localStorage.getItem("token")
       if (!token) {
@@ -316,23 +377,19 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
       let response
       if (mode === "create") {
-        response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`, formData, {
+        response = await API.post(`/api/Recipe/addRecipe1`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${token}`,
           },
         })
       } else {
-        response = await axios.put(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
+        response = await API.put(`/api/Recipe/updateRecipe/${recipeId}`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
-        )
+        })
       }
 
       toast.success(`Recipe ${mode}d successfully!`)
@@ -343,7 +400,9 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
         setIngredientsPreview([])
         setInstructionsPreview([])
         setImagePreviewUrl(null)
-        setCurrentImageUrl("")
+        setCurrentImage("")
+        setUsePreviousImage(false) // Reset for next create
+        setPreviousImageFileName(null) // Reset filename
       }
 
       router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
@@ -416,7 +475,6 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                     <CategorySelect name="occasion" label="Occasion" options={occasionOptions} />
                     <CategorySelect name="skillLevel" label="Skill Level" options={skillLevelOptions} />
 
-                    {/* Replaced input with CategorySelect for Cooking Time */}
                     <CategorySelect name="cookingTime" label="Cooking Time" options={cookingTimeOptions} required />
 
                     <div>
@@ -483,12 +541,12 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                       )}
 
                       {instructionsPreview.length > 0 && (
-                        <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                          <h4 className="font-medium text-green-800 mb-2">Preview:</h4>
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                          <h4 className="font-medium text-blue-800 mb-2">Preview:</h4>
                           <ol className="space-y-2">
                             {instructionsPreview.map((instruction, index) => (
                               <li key={index} className="flex items-start">
-                                <span className="text-green-700 font-medium mr-3 mt-0.5">{index + 1}.</span>
+                                <span className="text-blue-600 font-medium mr-3 mt-0.5">{index + 1}.</span>
                                 <span className="text-gray-700">{instruction}</span>
                               </li>
                             ))}
@@ -564,14 +622,19 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
                     <div>
                       <label className="block font-medium mb-2">Recipe Image</label>
-                      {mode === "update" && currentImageUrl && !imagePreviewUrl && (
+                      {mode === "update" && currentImage && usePreviousImage && !imagePreviewUrl && (
                         <div className="mb-4">
                           <p className="text-sm text-gray-600 mb-2">Current image:</p>
                           <img
-                            src={currentImageUrl || "/image/default.png"}
+                            src={currentImage || "/image/default.png"}
                             alt="Current recipe"
                             className="w-32 h-32 object-cover rounded-lg border"
                           />
+                          {previousImageFileName && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Currently: <strong>{previousImageFileName}</strong>
+                            </p>
+                          )}
                         </div>
                       )}
                       {imagePreviewUrl && (
@@ -591,11 +654,22 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                         className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                       />
                       <p className="text-sm text-gray-500 mt-1">
-                        {mode === "update" && currentImageUrl
+                        {mode === "update" && currentImage
                           ? "Upload a new image to replace the current one"
                           : "Upload a high-quality image of your finished recipe"}
                       </p>
                       {errors.imageFile && <p className="text-red-500 text-sm mt-1">{errors.imageFile.message}</p>}
+
+                      {mode === "update" && currentImage && !imagePreviewUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleUsePreviousImage}
+                          className="mt-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        >
+                          Use Previous Image
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
