@@ -12,6 +12,11 @@ interface Recipe {
   image: string;
   cookingTime: number;
   portion: number;
+  mealType?: string;
+  cuisine?: string;
+  diet?: string;
+  occasion?: string;
+  skillLevel?: string;
   ingredients?: string | string[];
   instructions?: string | string[];
   calories?: number;
@@ -99,7 +104,20 @@ const ViewRecipe: React.FC = () => {
               <ul className="text-sm text-gray-700 space-y-1">
                 <li><strong>Total Time:</strong> {recipe.cookingTime} minutes</li>
                 <li><strong>Portion Size:</strong> {recipe.portion} servings</li>
-                <li><strong>Category:</strong> Main course</li>
+                <li><strong>Meal Type: </strong>{recipe.mealType}</li>
+                {recipe.cuisine && (
+                  <li><strong>Cuisine: </strong>{recipe.cuisine}</li>
+                )}
+                {recipe.diet && (
+                  <li><strong>Diet: </strong>{recipe.diet}</li>
+                )}
+                {recipe.occasion && (
+                  <li><strong>Occasion: </strong>{recipe.occasion}</li>
+                )}
+                {recipe.skillLevel && (
+                  <li><strong>Skill Level: </strong>{recipe.skillLevel}</li>
+                )}
+
               </ul>
             </div>
 

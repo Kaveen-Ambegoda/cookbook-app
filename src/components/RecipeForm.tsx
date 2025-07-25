@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react"
 import { useForm, FormProvider, useFormContext } from "react-hook-form"
 import { motion } from "framer-motion"
-import axios from "axios"
+import axios from "axios" // Keep axios for general use, but use API for authenticated calls
+import API from "@/app/utils/axiosInstance" // Import the configured axios instance
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 
@@ -15,7 +16,7 @@ type RecipeFormData = {
   diet?: string
   occasion?: string
   skillLevel?: string
-  cookingTime: string // Changed to string for select input
+  cookingTime: string
   portion: number
   calories: number
   protein: number
@@ -69,31 +70,29 @@ const occasionOptions = [
 
 const skillLevelOptions = ["Beginner-Friendly", "Intermediate", "Advanced"]
 
-// New options for Cooking Time
 const cookingTimeOptions = [
   { label: "Under 15 Minutes", value: "15" },
   { label: "Under 30 Minutes", value: "30" },
   { label: "30–60 Minutes", value: "60" },
-  { label: "Over 1 Hour", value: "120" }, // Using 120 minutes as a representative value for "Over 1 Hour"
+  { label: "Over 1 Hour", value: "120" },
 ]
 
-// Helper to map numerical cooking time from backend to select option value
 const getCookingTimeOptionValue = (time: number): string => {
   if (time <= 15) return "15"
   if (time <= 30) return "30"
   if (time <= 60) return "60"
-  return "120" // For anything over 60 minutes
+  return "120"
 }
 
 function CategorySelect({
   name,
   label,
-  options, // Now accepts { label: string; value: string }[] or string[]
+  options,
   required = false,
 }: {
   name: keyof RecipeFormData
   label: string
-  options: string[] | { label: string; value: string }[] // Updated type
+  options: string[] | { label: string; value: string }[]
   required?: boolean
 }) {
   const {
@@ -137,7 +136,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
   const [isLoading, setIsLoading] = useState(mode === "update")
   const [ingredientsPreview, setIngredientsPreview] = useState<string[]>([])
   const [instructionsPreview, setInstructionsPreview] = useState<string[]>([])
-  const [currentImageUrl, setCurrentImageUrl] = useState<string>("")
+  const [currentImage, setCurrentImage] = useState<string>("") // Renamed from currentImageUrl
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
 
   const methods = useForm<RecipeFormData>()
@@ -184,23 +183,22 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
       const file = watchedImageFile[0]
       const objectUrl = URL.createObjectURL(file)
       setImagePreviewUrl(objectUrl)
-
       return () => {
         URL.revokeObjectURL(objectUrl)
       }
     } else {
       setImagePreviewUrl(null)
     }
-  }, [watchedImageFile]) //Removed imagePreviewUrl from dependencies
-
+  }, [watchedImageFile])
 
   useEffect(() => {
     if (mode === "update" && recipeId && isClient) {
       setIsLoading(true)
-      axios
-        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${recipeId}`)
+      // Use the configured API instance for fetching
+      API.get(`/api/Recipe/${recipeId}`)
         .then((res) => {
           const data = res.data
+          console.log("Fetched recipe data:", data) // Log the entire fetched data
 
           const parsedIngredients =
             data.ingredients
@@ -214,23 +212,37 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
               .join(". ") || ""
 
           const categoriesArray = data.categories || []
+          console.log("Categories array from backend:", categoriesArray) // Log the categories array
 
-          reset({
+          const resetData = {
             ...data,
             ingredients: parsedIngredients,
             instructions: parsedInstructions,
-            mealType: categoriesArray[0] || "",
-            cuisine: categoriesArray[1] || "",
-            diet: categoriesArray[2] || "",
-            occasion: categoriesArray[3] || "",
-            skillLevel: categoriesArray[4] || "",
-            cookingTime: getCookingTimeOptionValue(data.cookingTime), // Map numerical time to option value
-          })
+            mealType: data.mealType || categoriesArray[0] || "",
+            cuisine: data.cuisine || categoriesArray[1] || "",
+            diet: data.diet || categoriesArray[2] || "",
+            occasion: data.occasion || categoriesArray[3] || "",
+            skillLevel: data.skillLevel || categoriesArray[4] || "",
+            cookingTime: getCookingTimeOptionValue(data.cookingTime),
+          }
+          console.log("Data being passed to reset:", resetData) // Log the data before reset
 
-          setCurrentImageUrl(data.imageUrl || "")
+          reset(resetData)
+
+          // IMPORTANT: Now looking for 'data.image' instead of 'data.imageUrl'
+          console.log("Image URL from backend (data.image):", data.image)
+          setCurrentImage(data.image || "") // Set currentImage from data.image
+          console.log("Current image state after fetch:", data.image || "")
         })
-        .catch(() => {
-          toast.error("Failed to load recipe data")
+        .catch((err) => {
+          console.error("Error fetching recipe data:", err) // Log the full error
+          let errorMessage = "Failed to load recipe data."
+          if (axios.isAxiosError(err) && err.response) {
+            errorMessage += ` Status: ${err.response.status}. Message: ${err.response.data?.message || err.message}`
+          } else if (err instanceof Error) {
+            errorMessage += ` Error: ${err.message}`
+          }
+          toast.error(errorMessage)
           router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
         })
         .finally(() => setIsLoading(false))
@@ -262,13 +274,13 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
         "diet",
         "occasion",
         "skillLevel",
-        "cookingTime", // Included cookingTime in validation
+        "cookingTime",
         "portion",
       ])
     } else if (step === 1) {
       isValid = await trigger(["ingredients", "instructions"])
     } else if (step === 2) {
-      isValid = true
+      isValid = true // No specific validation for step 2 before moving forward
     }
 
     if (isValid) {
@@ -290,7 +302,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
       formData.append("categories", JSON.stringify(categories))
 
-      formData.append("cookingTime", Number(data.cookingTime).toString()) // Convert string value back to number
+      formData.append("cookingTime", Number(data.cookingTime).toString())
       formData.append("portion", data.portion.toString())
 
       const formattedIngredients = formatIngredientsForSubmission(data.ingredients)
@@ -316,23 +328,19 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
       let response
       if (mode === "create") {
-        response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`, formData, {
+        response = await API.post(`/api/Recipe/addRecipe1`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${token}`,
           },
         })
       } else {
-        response = await axios.put(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
+        response = await API.put(`/api/Recipe/updateRecipe/${recipeId}`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
-        )
+        })
       }
 
       toast.success(`Recipe ${mode}d successfully!`)
@@ -343,7 +351,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
         setIngredientsPreview([])
         setInstructionsPreview([])
         setImagePreviewUrl(null)
-        setCurrentImageUrl("")
+        setCurrentImage("") // Reset currentImage as well
       }
 
       router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
@@ -416,7 +424,6 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                     <CategorySelect name="occasion" label="Occasion" options={occasionOptions} />
                     <CategorySelect name="skillLevel" label="Skill Level" options={skillLevelOptions} />
 
-                    {/* Replaced input with CategorySelect for Cooking Time */}
                     <CategorySelect name="cookingTime" label="Cooking Time" options={cookingTimeOptions} required />
 
                     <div>
@@ -564,11 +571,11 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
                     <div>
                       <label className="block font-medium mb-2">Recipe Image</label>
-                      {mode === "update" && currentImageUrl && !imagePreviewUrl && (
+                      {mode === "update" && currentImage && !imagePreviewUrl && (
                         <div className="mb-4">
                           <p className="text-sm text-gray-600 mb-2">Current image:</p>
                           <img
-                            src={currentImageUrl || "/image/default.png"}
+                            src={currentImage || "/image/default.png"} // Use currentImage
                             alt="Current recipe"
                             className="w-32 h-32 object-cover rounded-lg border"
                           />
@@ -591,7 +598,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                         className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                       />
                       <p className="text-sm text-gray-500 mt-1">
-                        {mode === "update" && currentImageUrl
+                        {mode === "update" && currentImage
                           ? "Upload a new image to replace the current one"
                           : "Upload a high-quality image of your finished recipe"}
                       </p>
