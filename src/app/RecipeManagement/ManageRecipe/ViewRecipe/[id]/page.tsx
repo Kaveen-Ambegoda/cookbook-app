@@ -21,7 +21,8 @@ interface Recipe {
   instructions?: string | string[];
   calories?: number;
   protein?: number;
-  carbohydrates?: number;
+  fat?: number;
+  carbs?: number;
 }
 
 const ViewRecipe: React.FC = () => {
@@ -126,7 +127,8 @@ const ViewRecipe: React.FC = () => {
               <ul className="text-sm text-gray-700 space-y-1">
                 <li><strong>Calories:</strong> {recipe.calories ?? 0}</li>
                 <li><strong>Protein:</strong> {recipe.protein ?? 0}g</li>
-                <li><strong>Carbohydrates:</strong> {recipe.carbohydrates ?? 0}g</li>
+                <li><strong>Fat:</strong> {recipe.fat ?? 0}g</li>
+                <li><strong>Carbohydrates:</strong> {recipe.carbs ?? 0}g</li>
               </ul>
             </div>
           </div>

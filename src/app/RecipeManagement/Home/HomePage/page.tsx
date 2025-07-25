@@ -37,13 +37,30 @@ const HomePage = () => {
     carbsMin: "",
   });
 
-  // Dummy options — replace with real API fetch if needed
-  const recipeCategories = ["Quick and Easy", "Vegetarian", "Desserts", "Seafood"];
-  const mealTypeOptions = ["Breakfast", "Lunch", "Dinner"];
-  const cuisineOptions = ["Italian", "Chinese", "Sri Lankan"];
-  const dietOptions = ["Vegan", "Keto", "Gluten-Free"];
-  const occasionOptions = ["Party", "Family", "Holiday"];
-  const skillLevelOptions = ["Beginner", "Intermediate", "Expert"];
+  const [mealTypeOptions, setMealTypeOptions] = useState<string[]>([]);
+  const [cuisineOptions, setCuisineOptions] = useState<string[]>([]);
+  const [dietOptions, setDietOptions] = useState<string[]>([]);
+  const [occasionOptions, setOccasionOptions] = useState<string[]>([]);
+  const [skillLevelOptions, setSkillLevelOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+  const fetchFilterOptions = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/filter-options`);
+      const data = response.data;
+
+      setMealTypeOptions(data.mealTypes || []);
+      setCuisineOptions(data.cuisines || []);
+      setDietOptions(data.diets || []);
+      setOccasionOptions(data.occasions || []);
+      setSkillLevelOptions(data.skillLevels || []);
+    } catch (error) {
+      console.error("Error fetching filter options:", error);
+    }
+  };
+
+    fetchFilterOptions();
+  }, []);
 
   useEffect(() => {
     const fetchRecipes = async () => {
@@ -88,7 +105,6 @@ const HomePage = () => {
         onOpenChange={setIsFilterOpen}
         filters={filters}
         onFiltersChange={setFilters}
-        recipeCategories={recipeCategories}
         mealTypeOptions={mealTypeOptions}
         cuisineOptions={cuisineOptions}
         dietOptions={dietOptions}
