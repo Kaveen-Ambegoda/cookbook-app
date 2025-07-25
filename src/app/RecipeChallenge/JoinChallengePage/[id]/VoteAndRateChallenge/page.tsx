@@ -29,6 +29,7 @@ export default function VoteAndRateChallenge() {
   const [userRatings, setUserRatings] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [challengeName, setChallengeName] = useState<string>('');
 
   useEffect(() => {
     async function fetchRecipes() {
@@ -65,6 +66,20 @@ export default function VoteAndRateChallenge() {
       }
     }
     if (challengeId) fetchRecipes();
+  }, [challengeId]);
+
+  useEffect(() => {
+    async function fetchChallengeDetails() {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/challenges/details/${challengeId}`
+        );
+        setChallengeName(response.data.title); // Use 'title' from ChallengeDetailDto
+      } catch (err) {
+        setChallengeName('');
+      }
+    }
+    if (challengeId) fetchChallengeDetails();
   }, [challengeId]);
 
   const handleVote = (recipeId: string, voteType: 'up') => {
@@ -115,8 +130,8 @@ export default function VoteAndRateChallenge() {
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight">
                 Vote & Rate
               </h1>
-              <div className="text-lg sm:text-xl font-medium text-orange-100 mb-2">
-                Challenge ID: {challengeId}
+              <div className="text-4xl sm:text-xl font-medium text-orange-100 mb-2">
+                {challengeName}
               </div>
               <p className="text-orange-100 text-sm sm:text-base max-w-2xl mx-auto">
                 Cast your votes and rate the submitted recipes to help determine the winner
