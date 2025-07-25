@@ -65,6 +65,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
+
         const queryParams = new URLSearchParams();
 
         if (filters.searchTerm) queryParams.append("searchTerm", filters.searchTerm);
@@ -84,6 +85,7 @@ const HomePage = () => {
         }`;
 
         const response = await axios.get(url);
+          
         setRecipes(response.data);
       } catch (error) {
         console.error("Error fetching recipes:", error);
