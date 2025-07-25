@@ -1,4 +1,4 @@
-// src/components/AdvancedUserManagement.tsx
+// src/app/Layouts/users/page.tsx
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
@@ -15,11 +15,10 @@ import {
   updateUserRestrictions
 } from '@/app/Admin/Layouts/Data/userData';
 import { User } from '@/app/Admin/Layouts/Data/userData';
-import { useSearchParams } from 'next/navigation';
 
 // Type definitions
 type UserStatus = 'active' | 'banned' | 'restricted';
-type UserRole = 'normal' | 'host' | 'admin';
+type UserRole = 'User' | 'host' | 'admin';
 type StatusFilter = 'all' | UserStatus;
 type SortField = keyof User;
 type ActionType = 'ban' | 'unban' | 'upgrade' | 'downgrade';
@@ -199,7 +198,7 @@ export default function AdvancedUserManagement() {
                  typeof user.name === 'string' && 
                  typeof user.email === 'string' &&
                  ['active', 'banned', 'restricted'].includes(user.status) &&
-                 ['normal', 'host', 'admin'].includes(user.role);
+                 ['User', 'host', 'admin'].includes(user.role);
         });
 
         if (validatedUsers.length !== data.length) {
@@ -232,20 +231,33 @@ export default function AdvancedUserManagement() {
     }
   }, [handleError]);
 
-  // Calculate analytics with validation
+  // Helper function to check if a user has any restrictions
+  const hasAnyRestrictions = useCallback((user: User): boolean => {
+    if (!user.restrictions) return false;
+    return Object.values(user.restrictions).some(restriction => restriction === true);
+  }, []);
+
+  // Calculate analytics with validation - Enhanced to consider banned users as restricted
   const calculateAnalytics = useCallback((data: User[]) => {
     if (!Array.isArray(data) || !isMountedRef.current) return;
 
     try {
+      // Count users who are either explicitly restricted OR have any individual restrictions OR are banned
+      const restrictedUsersCount = data.filter(u => 
+        u.status === 'restricted' || 
+        u.status === 'banned' || 
+        hasAnyRestrictions(u)
+      ).length;
+
       const analytics: Analytics = {
         totalUsers: data.length,
         totalHosts: data.filter(u => u.role === 'host').length,
         activeUsers: data.filter(u => u.status === 'active').length,
         bannedUsers: data.filter(u => u.status === 'banned').length,
-        restrictedUsers: data.filter(u => u.status === 'restricted').length,
+        restrictedUsers: restrictedUsersCount, // Enhanced calculation
         reportedUsers: data.filter(u => u.reported === true).length,
         topUsers: data
-          .filter(u => u.role === 'normal' && typeof u.engagementScore === 'number')
+          .filter(u => u.role === 'User' && typeof u.engagementScore === 'number')
           .sort((a, b) => (b.engagementScore || 0) - (a.engagementScore || 0))
           .slice(0, 5),
         topHosts: data
@@ -258,7 +270,7 @@ export default function AdvancedUserManagement() {
     } catch (err) {
       handleError(err, 'calculating analytics');
     }
-  }, [handleError]);
+  }, [handleError, hasAnyRestrictions]);
 
   // Memoized filtered and sorted users
   const filteredUsers = useMemo(() => {
@@ -267,8 +279,18 @@ export default function AdvancedUserManagement() {
     try {
       return users
         .filter(user => {
-          // Status filter
-          const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+          // Status filter - Enhanced to show banned users in restricted filter
+          let matchesStatus = false;
+          if (statusFilter === 'all') {
+            matchesStatus = true;
+          } else if (statusFilter === 'restricted') {
+            // Show users who are restricted OR banned OR have any individual restrictions
+            matchesStatus = user.status === 'restricted' || 
+                           user.status === 'banned' || 
+                           hasAnyRestrictions(user);
+          } else {
+            matchesStatus = user.status === statusFilter;
+          }
           
           // Search filter
           const searchLower = debouncedSearchTerm.toLowerCase();
@@ -303,9 +325,9 @@ export default function AdvancedUserManagement() {
       handleError(err, 'filtering users');
       return [];
     }
-  }, [users, statusFilter, debouncedSearchTerm, sortField, sortAsc, handleError]);
+  }, [users, statusFilter, debouncedSearchTerm, sortField, sortAsc, handleError, hasAnyRestrictions]);
 
-  // Handle confirmation with loading state
+  // Enhanced handle confirmation with auto-restriction on ban
   const handleConfirm = useCallback(async () => {
     if (!confirmAction || !isMountedRef.current) return;
 
@@ -316,11 +338,47 @@ export default function AdvancedUserManagement() {
       if (action === 'ban' || action === 'unban') {
         const newStatus: UserStatus = action === 'ban' ? 'banned' : 'active';
         await updateUserStatus(user.id, newStatus);
-        toast.success(`${user.name} has been ${action === 'ban' ? 'banned' : 'unbanned'}`);
+        
+        // If banning, automatically restrict all functions
+        if (action === 'ban') {
+          const allRestrictionsEnabled = {
+            commenting: true,
+            liking: true,
+            posting: true,
+            messaging: true,
+            liveStreaming: true,
+          };
+          
+          try {
+            await updateUserRestrictions(user.id, allRestrictionsEnabled);
+            toast.success(`${user.name} has been banned and all functions restricted`);
+          } catch (restrictionError) {
+            // Even if restriction update fails, the ban succeeded
+            console.error('Failed to update restrictions after ban:', restrictionError);
+            toast.warning(`${user.name} has been banned, but failed to update restrictions automatically`);
+          }
+        } else {
+          // If unbanning, optionally remove all restrictions (you can make this configurable)
+          const allRestrictionsDisabled = {
+            commenting: false,
+            liking: false,
+            posting: false,
+            messaging: false,
+            liveStreaming: false,
+          };
+          
+          try {
+            await updateUserRestrictions(user.id, allRestrictionsDisabled);
+            toast.success(`${user.name} has been unbanned and all restrictions removed`);
+          } catch (restrictionError) {
+            console.error('Failed to update restrictions after unban:', restrictionError);
+            toast.warning(`${user.name} has been unbanned, but restrictions were not automatically removed`);
+          }
+        }
       } else if (action === 'upgrade' || action === 'downgrade') {
-        const newRole: UserRole = action === 'upgrade' ? 'host' : 'normal';
+        const newRole: UserRole = action === 'upgrade' ? 'host' : 'User';
         await updateUserRole(user.id, newRole);
-        toast.success(`${user.name} has been ${action === 'upgrade' ? 'promoted to host' : 'demoted to normal user'}`);
+        toast.success(`${user.name} has been ${action === 'upgrade' ? 'promoted to host' : 'demoted to normal User'}`);
       }
       
       await loadUsers();
@@ -349,7 +407,25 @@ export default function AdvancedUserManagement() {
       
       await updateUserRestrictions(userId, updatedRestrictions);
       toast.success(`${key} restriction ${updatedRestrictions[key] ? 'enabled' : 'disabled'} for ${user.name}`);
-      await loadUsers();
+
+      // Update local users state immediately for instant UI update
+      setUsers(prevUsers =>
+        prevUsers.map(u =>
+          u.id === userId ? { ...u, restrictions: updatedRestrictions } : u
+        )
+      );
+
+      // Update selectedUser if modal is open for this user
+      if (selectedUser?.id === userId) {
+        setSelectedUser(prev => prev ? { ...prev, restrictions: updatedRestrictions } : prev);
+      }
+
+      // Recalculate analytics to reflect restriction changes
+      const updatedUsers = users.map(u =>
+        u.id === userId ? { ...u, restrictions: updatedRestrictions } : u
+      );
+      calculateAnalytics(updatedUsers);
+
     } catch (err) {
       handleError(err, 'updating restrictions');
     } finally {
@@ -357,7 +433,7 @@ export default function AdvancedUserManagement() {
         setLoading(prev => ({ ...prev, restriction: false }));
       }
     }
-  }, [users, loadUsers, handleError]);
+  }, [users, selectedUser, handleError, calculateAnalytics]);
 
   // Event handlers
   const handleStatusFilterChange = useCallback((value: string) => {
@@ -379,11 +455,24 @@ export default function AdvancedUserManagement() {
   const handleActionConfirm = useCallback((user: User, action: ActionType) => {
     setConfirmAction({ user, action });
   }, []);
-  
-  // Get highlight user from URL search params
-  const searchParams = useSearchParams();
-  const highlightUser = searchParams.get('highlight');
-  const highlightUserId = highlightUser ? Number(highlightUser) : null;
+
+  // Helper function to get user restriction status for display
+  const getUserRestrictionStatus = useCallback((user: User): string => {
+    if (user.status === 'banned') {
+      return 'All functions restricted (Banned)';
+    }
+    if (user.status === 'restricted') {
+      return 'Status: Restricted';
+    }
+    if (hasAnyRestrictions(user)) {
+      const restrictedFunctions = Object.entries(user.restrictions || {})
+        .filter(([_, value]) => value)
+        .map(([key, _]) => key)
+        .join(', ');
+      return `Partially restricted: ${restrictedFunctions}`;
+    }
+    return 'No restrictions';
+  }, [hasAnyRestrictions]);
 
   // Render loading state
   if (loading.main && users.length === 0) {
@@ -414,7 +503,7 @@ export default function AdvancedUserManagement() {
           draggable
           pauseOnHover
         />
-        
+
         {/* Header with search and filters */}
         <div className="flex flex-wrap gap-4 justify-between items-center">
           <div className="flex gap-2 items-center">
@@ -438,7 +527,7 @@ export default function AdvancedUserManagement() {
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
-              <option value="restricted">Restricted</option>
+              <option value="restricted">Restricted (includes banned)</option>
               <option value="banned">Banned</option>
             </select>
           </div>
@@ -498,8 +587,8 @@ export default function AdvancedUserManagement() {
           <StatCard title="Total Users" value={analytics.totalUsers} icon={Users} />
           <StatCard title="Hosts" value={analytics.totalHosts} icon={Crown} />
           <StatCard title="Active" value={analytics.activeUsers} icon={CheckCircle} />
-          <StatCard title="Restricted" value={analytics.restrictedUsers} icon={Lock} />
-          <StatCard title="Banned" value={analytics.bannedUsers} icon={Ban} />
+          <StatCard title="Restricted" value={analytics.restrictedUsers} icon={Lock} color="yellow" />
+          <StatCard title="Banned" value={analytics.bannedUsers} icon={Ban} color="red" />
           <StatCard title="Reported" value={analytics.reportedUsers} icon={Flag} />
         </div>
 
@@ -522,6 +611,7 @@ export default function AdvancedUserManagement() {
                       { key: 'email', label: 'Email' },
                       { key: 'role', label: 'Role' },
                       { key: 'status', label: 'Status' },
+                      { key: 'restrictions', label: 'Restrictions' },
                       { key: 'engagementScore', label: 'Engagement' },
                       { key: 'actions', label: 'Actions' }
                     ].map(header => (
@@ -536,10 +626,7 @@ export default function AdvancedUserManagement() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((user) => (
-                    <tr
-                      key={user.id}
-                      className={`hover:bg-gray-50 ${user.id === highlightUserId ? 'bg-yellow-100' : ''}`}
-                    >
+                    <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="text-sm font-medium text-gray-900">
@@ -569,6 +656,11 @@ export default function AdvancedUserManagement() {
                         }`}>
                           {user.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-500 max-w-32">
+                        <div className="truncate" title={getUserRestrictionStatus(user)}>
+                          {getUserRestrictionStatus(user)}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.engagementScore || 0}%
@@ -645,9 +737,31 @@ export default function AdvancedUserManagement() {
                 )}
               </div>
 
+              {/* Ban status warning */}
+              {selectedUser.status === 'banned' && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <Ban className="text-red-500 mr-2" size={20} />
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">User is Banned</h4>
+                      <p className="text-sm text-red-700 mt-1">
+                        All functions are automatically restricted for banned users.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {selectedUser.restrictions && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Restrictions</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center">
+                    Restrictions
+                    {selectedUser.status === 'banned' && (
+                      <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                        Auto-restricted (Banned)
+                      </span>
+                    )}
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {Object.entries(selectedUser.restrictions).map(([key, value]) => (
                       <div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -656,12 +770,13 @@ export default function AdvancedUserManagement() {
                         </span>
                         <button
                           onClick={() => handleRestrictionToggle(selectedUser.id, key as keyof User['restrictions'])}
-                          disabled={loading.restriction}
+                          disabled={loading.restriction || selectedUser.status === 'banned'}
                           className={`px-3 py-1 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 ${
                             value 
                               ? 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500' 
                               : 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={selectedUser.status === 'banned' ? 'Cannot modify restrictions for banned users' : ''}
                         >
                           {loading.restriction ? (
                             <Loader2 className="animate-spin" size={14} />
@@ -672,13 +787,18 @@ export default function AdvancedUserManagement() {
                       </div>
                     ))}
                   </div>
+                  {selectedUser.status === 'banned' && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      * Restrictions cannot be modified for banned users. Unban the user first to manage individual restrictions.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           </Modal>
         )}
 
-        {/* Confirmation Modal */}
+        {/* Enhanced Confirmation Modal */}
         {confirmAction && (
           <Modal 
             onClose={() => setConfirmAction(null)}
@@ -691,6 +811,43 @@ export default function AdvancedUserManagement() {
                 <strong>{confirmAction.user.name}</strong>?
               </p>
               
+              {/* Additional warning for ban action */}
+              {confirmAction.action === 'ban' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <Ban className="text-yellow-600 mr-2 mt-0.5" size={16} />
+                    <div className="text-sm">
+                      <p className="font-medium text-yellow-800">Warning:</p>
+                      <p className="text-yellow-700 mt-1">
+                        Banning this user will automatically restrict all their functions including:
+                      </p>
+                      <ul className="list-disc list-inside text-yellow-700 mt-1 space-y-0.5">
+                        <li>Commenting</li>
+                        <li>Liking posts</li>
+                        <li>Creating posts</li>
+                        <li>Messaging</li>
+                        <li>Live streaming</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Additional info for unban action */}
+              {confirmAction.action === 'unban' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <CheckCircle className="text-green-600 mr-2 mt-0.5" size={16} />
+                    <div className="text-sm">
+                      <p className="font-medium text-green-800">Note:</p>
+                      <p className="text-green-700 mt-1">
+                        Unbanning this user will remove all restrictions and restore full access to platform features.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setConfirmAction(null)}
@@ -702,10 +859,16 @@ export default function AdvancedUserManagement() {
                 <button
                   onClick={handleConfirm}
                   disabled={loading.action}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className={`px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${
+                    confirmAction.action === 'ban' 
+                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                      : confirmAction.action === 'unban'
+                      ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                  }`}
                 >
                   {loading.action && <Loader2 className="animate-spin" size={16} />}
-                  <span>Confirm</span>
+                  <span>Confirm {confirmAction.action}</span>
                 </button>
               </div>
             </div>
@@ -716,20 +879,39 @@ export default function AdvancedUserManagement() {
   );
 }
 
-// Enhanced StatCard component
-const StatCard = ({ title, value, icon: Icon }: { title: string; value: number; icon: React.ElementType }) => (
-  <div className="bg-white shadow-sm rounded-lg p-4 hover:shadow-md transition-shadow">
-    <div className="flex items-center space-x-3">
-      <div className="p-2 bg-blue-50 rounded-lg">
-        <Icon className="text-blue-600" size={24} />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</p>
+// Enhanced StatCard component with color support
+const StatCard = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color = 'blue' 
+}: { 
+  title: string; 
+  value: number; 
+  icon: React.ElementType; 
+  color?: 'blue' | 'yellow' | 'red' | 'green';
+}) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 text-blue-600',
+    yellow: 'bg-yellow-50 text-yellow-600',
+    red: 'bg-red-50 text-red-600',
+    green: 'bg-green-50 text-green-600'
+  };
+
+  return (
+    <div className="bg-white shadow-sm rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-center space-x-3">
+        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
+          <Icon size={24} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</p>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Enhanced Modal component with accessibility
 const Modal: React.FC<{
