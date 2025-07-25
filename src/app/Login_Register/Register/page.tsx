@@ -48,7 +48,7 @@ export default function SignUpPage() {
 
       if (response.ok) {
         setMessage("User registered successfully"); 
-        router.push("/Login_Register/Login"); // Redirect to login page after successful registration
+        router.push(`/Login_Register/EmailSent?email=${encodeURIComponent(email)}`);; //redirect to email sent message 
       } else {
         setMessage(data.message || "Registration failed"); 
       }
@@ -156,7 +156,7 @@ export default function SignUpPage() {
           <div className={`mt-4 text-center text-[0.9rem] ${roboto.className}`}>
             <div className="text-[#333333]">
               Already have an account?
-              <a href="/login" className="text-[#AE4700] font-bold ml-1">Sign In</a>
+              <a href="/Login_Register/Login" className="text-[#AE4700] font-bold ml-1">Sign In</a>
             </div>
           </div>
         </form>

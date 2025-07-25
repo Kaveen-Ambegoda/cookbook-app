@@ -10,6 +10,8 @@ import { useAuth } from '@/app/context/authContext';
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebookF, FaApple } from 'react-icons/fa';
 
+import toast, { Toaster } from "react-hot-toast"; // ✅ Added toast
+
 // Backend API base URL (easily switch between HTTP & HTTPS here)
 const API_BASE_URL = "https://localhost:7205"; 
 
@@ -17,7 +19,6 @@ export default function LoginPage() {
   // State hooks to store the form data
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState(""); 
   const { login } = useAuth(); // Use the login function from auth context
   const router = useRouter();  
 
@@ -42,31 +43,28 @@ export default function LoginPage() {
       console.log('Login response:', data);
 
       if (response.ok) {
-        
-        const {token , refreshToken} = data; // Destructure token and refreshToken from response
+        const { token , refreshToken } = data; // Destructure token and refreshToken from response
         login(token , refreshToken); // This updates context and localStorage
-        setMessage("Login successful");
-
-        
-        
-        // Redirect to frontend dashboard or homepage
-         
+        toast.success("Login successful!"); //  Toast success message
         router.push("/");
-
       } else {
         console.log('Login failed:', data.message);
-        setMessage(data.message || "Login failed");
+        toast.error(data.message || "Login failed"); //  Toast error message
       }
     } catch (error) {
-      setMessage("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again."); //  Toast error fallback
       console.error("Login error:", error);
     }
   };
 
   return (
+    
+    
     <div className="lg:min-h-[90vh] bg-cover bg-center flex items-center overflow-y-hidden" style={{ backgroundImage: "url('/image/background_image3.png')" }}>
       {/* Login Container */}
       <div className="lg:w-full lg:h-[35rem] lg:max-w-[35rem] rounded-xl bg-[#FFDC8F]/90 backdrop-blur lg:p-5 lg:py-10 shadow-lg lg:pl-[4rem] lg:ml-[20rem] lg:mt-2 md:ml-[10rem] md:mt-[-2rem] sm:max-w-[20rem] sm:h-[25rem] sm:p-4 sm:pl-[2rem]">
+        
+        
 
         <h1 className={`mb-4 text-[2.5rem] font-semibold text-left text-[#F25019] ${adlam.className}`}>Login</h1>
 
@@ -130,17 +128,12 @@ export default function LoginPage() {
           <div className={`mt-4 text-center text-[0.9rem] ${roboto.className}`}>
             <div className="text-[#333333]">
               Don't have an account?
-              <a href="/register" className="text-[#AE4700] font-bold ml-1">Sign Up</a>
+              <a href="/Login_Register/Register" className="text-[#AE4700] font-bold ml-1">Sign Up</a>
             </div>
           </div>
         </form>
 
-        {/* Error or Success message (has to beautify) */}
-        {message && (
-          <div className="mt-4 text-center text-[0.9rem] text-red-600 font-semibold">
-            {message}
-          </div>
-        )}
+        
         
       </div>
     </div>

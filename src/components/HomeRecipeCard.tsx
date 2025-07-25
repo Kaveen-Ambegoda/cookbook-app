@@ -1,8 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { useReviewCount } from "./useReviewCount";
+import useIsFavorited from "./useIsFavorited";
+import { useRouter } from "next/navigation";
+
 import {
   FaHeart,
   FaCommentDots,
@@ -21,39 +25,63 @@ type RecipeProps = {
     favorites?: number;
     reviews?: number;
   };
+  isFavorite?: boolean; // passed from Favorites page (optional)
+  onFavoriteChange?: () => void; // callback to re-fetch favorites (optional)
 };
 
-const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
-  const [isFavorited, setIsFavorited] = useState(false);
+const HomeRecipeCard: React.FC<RecipeProps> = ({
+  recipe,
+  isFavorite,
+  onFavoriteChange,
+}) => {
+  const hookIsFavorited = useIsFavorited(recipe.id);
+  const reviewCount = useReviewCount(recipe.id);
+  const router = useRouter()
+
+  // Prefer the prop if passed, else fall back to hook
+  const initialIsFavorited =
+    typeof isFavorite === "boolean" ? isFavorite : hookIsFavorited;
+
+  const [favorited, setFavorited] = useState<boolean>(initialIsFavorited);
+
+  // Sync external favorite state with local state
+  useEffect(() => {
+    setFavorited(initialIsFavorited);
+  }, [initialIsFavorited]);
 
   const handleFavorite = async () => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       toast.error("Please log in to favorite this recipe.");
+      router.push("/Login_Register/Login"); 
       return;
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/FavoriteRecipes`, {
-        method: "POST", // ✅ Ensure this line is present
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(recipe.id), // ✅ Backend expects raw int in body
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/FavoriteRecipes/toggle`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(recipe.id), // send plain number
+        }
+      );
 
       if (response.ok) {
-        setIsFavorited(true);
-        toast.success("Added to favorites!");
+        const data = await response.json();
+        setFavorited(data.isFavorited); // toggle UI state
+        toast.success(data.message);
+        if (onFavoriteChange) onFavoriteChange(); // refresh parent if needed
       } else {
-        const error = await response.text();
-        toast.error(error || "Failed to add favorite.");
+        const errorText = await response.text();
+        toast.error(errorText || "Failed to update favorite.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Network error");
+      toast.error("Network error.");
     }
   };
 
@@ -93,28 +121,27 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
         <button
           onClick={handleFavorite}
           className="flex items-center space-x-1 group"
-          disabled={isFavorited}
-          title={isFavorited ? "Already in Favorites" : "Add to Favorites"}
+          title={favorited ? "Remove from Favorites" : "Add to Favorites"}
         >
           <FaHeart
             className={`text-xl transition ${
-              isFavorited
-                ? "text-red-600"
+              favorited
+                ? "text-red-800"
                 : "text-gray-400 group-hover:text-red-500"
             }`}
           />
-          <span className="text-gray-700 font-medium">
-            {isFavorited ? "✓" : recipe.favorites ?? 0}
-          </span>
         </button>
 
         {/* Reviews */}
-        <div className="flex items-center space-x-1">
-          <FaCommentDots className="text-blue-500 text-xl hover:scale-110 transition" />
+        <Link
+          href={`/RecipeManagement/Review/${recipe.id}`}
+          className="flex items-center space-x-1 hover:scale-105 transition"
+        >
+          <FaCommentDots className="text-blue-500 text-xl" />
           <span className="text-gray-700 font-medium text-sm">
-            {recipe.reviews ?? 0}
+            {reviewCount ?? 0}
           </span>
-        </div>
+        </Link>
 
         {/* Share */}
         <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition">
@@ -129,7 +156,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({ recipe }) => {
           href={`/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`}
           className="text-white bg-green-700 px-3 py-1 rounded-xl hover:bg-green-900 transition text-sm"
         >
-          View Recipe
+          View
         </Link>
       </div>
     </div>
