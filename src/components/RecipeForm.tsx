@@ -1,17 +1,23 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, FormProvider, useFormContext } from "react-hook-form"
 import { motion } from "framer-motion"
-import axios from "axios"
+import axios from "axios" // Keep axios for general use, but use API for authenticated calls
+import API from "@/app/utils/axiosInstance" // Import the configured axios instance
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
+import { Button } from "@/components/ui/button" // Import Button component for styling
 
 type RecipeFormData = {
   title: string
   ingredients: string
   instructions: string
-  category: string
-  cookingTime: number
+  mealType?: string
+  cuisine?: string
+  diet?: string
+  occasion?: string
+  skillLevel?: string
+  cookingTime: string
   portion: number
   calories: number
   protein: number
@@ -27,200 +33,341 @@ interface RecipeFormProps {
 
 const steps = ["Basic Info", "Details", "Nutrition & Image"]
 
-const recipeCategories = [
-  "Breakfast",
-  "Lunch",
-  "Dinner",
-  "Main Course",
-  "Appetizer",
-  "Dessert",
-  "Snack",
-  "Beverage",
-  "Soup",
-  "Salad",
-  "Side Dish",
-  "Sauce",
-  "Other",
+// Export these options so they can be used in the filter sheet
+export const mealTypeOptions = ["Breakfast", "Lunch", "Dinner", "Snack", "Dessert", "Drinks & Smoothies"]
+
+export const cuisineOptions = [
+  "Sri Lankan",
+  "Indian",
+  "Chinese",
+  "Italian",
+  "Mexican",
+  "Middle Eastern",
+  "Thai",
+  "American",
+  "Mediterranean",
+  "Japanese",
 ]
+
+export const dietOptions = [
+  "Vegetarian",
+  "Vegan",
+  "Gluten-Free",
+  "Dairy-Free",
+  "Low-Carb",
+  "High-Protein",
+  "Keto-Friendly",
+  "Diabetic-Friendly",
+  "Weight-Loss",
+]
+
+export const occasionOptions = [
+  "Family Dinners",
+  "Quick Weeknight Meals",
+  "Party & Celebration",
+  "Holiday Specials",
+  "Kids’ Favorites",
+  "Budget Meals",
+]
+
+export const skillLevelOptions = ["Beginner-Friendly", "Intermediate", "Advanced"]
+
+export const cookingTimeOptions = [
+  { label: "Under 15 Minutes", value: "15" },
+  { label: "Under 30 Minutes", value: "30" },
+  { label: "30–60 Minutes", value: "60" },
+  { label: "Over 1 Hour", value: "120" },
+]
+
+const getCookingTimeOptionValue = (time: number): string => {
+  if (time <= 15) return "15"
+  if (time <= 30) return "30"
+  if (time <= 60) return "60"
+  return "120"
+}
+
+// Helper function to extract filename from URL
+const getFileNameFromUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url)
+    const pathSegments = urlObj.pathname.split("/")
+    return pathSegments[pathSegments.length - 1]
+  } catch (e) {
+    console.error("Invalid URL for filename extraction:", url, e)
+    return "unknown_image"
+  }
+}
+
+function CategorySelect({
+  name,
+  label,
+  options,
+  required = false,
+}: {
+  name: keyof RecipeFormData
+  label: string
+  options: string[] | { label: string; value: string }[]
+  required?: boolean
+}) {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext<RecipeFormData>()
+
+  const isObjectOptions = (opts: typeof options): opts is { label: string; value: string }[] =>
+    typeof opts[0] === "object" && opts[0] !== null && "label" in opts[0] && "value" in opts[0]
+
+  return (
+    <div className="mb-4">
+      <label className="block font-medium mb-1">{label}</label>
+      <select
+        {...register(name, { required: required ? `${label} is required` : false })}
+        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+        defaultValue=""
+      >
+        <option value="">-- Select --</option>
+        {isObjectOptions(options)
+          ? options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))
+          : (options as string[]).map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+      </select>
+      {errors[name] && <p className="text-red-500 text-sm mt-1">{(errors as any)[name]?.message}</p>}
+    </div>
+  )
+}
 
 const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [isClient, setIsClient] = useState(false)
-  const [recipeData, setRecipeData] = useState<RecipeFormData | null>(null)
+  const [isLoading, setIsLoading] = useState(mode === "update")
   const [ingredientsPreview, setIngredientsPreview] = useState<string[]>([])
   const [instructionsPreview, setInstructionsPreview] = useState<string[]>([])
-  const [customCategory, setCustomCategory] = useState("")
-  const [showCustomCategory, setShowCustomCategory] = useState(false)
-  const [currentImageUrl, setCurrentImageUrl] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(mode === "update")
+  const [currentImage, setCurrentImage] = useState<string>("")
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [usePreviousImage, setUsePreviousImage] = useState(false)
+  const [previousImageFileName, setPreviousImageFileName] = useState<string | null>(null) // New state for filename
 
+  const methods = useForm<RecipeFormData>()
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     reset,
     watch,
-  } = useForm<RecipeFormData>()
+    trigger,
+    setValue,
+  } = methods
 
   const watchedIngredients = watch("ingredients")
   const watchedInstructions = watch("instructions")
-  const watchedCategory = watch("category")
+  const watchedImageFile = watch("imageFile")
 
-  // Set client-side flag after the component is mounted
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // Parse existing ingredients and instructions to display format
-  const parseIngredientsFromBullets = (ingredients: string) => {
-    if (!ingredients) return ""
-    return ingredients
-      .split("\n")
-      .map((item) => item.replace(/^•\s*/, "").trim())
-      .filter((item) => item.length > 0)
-      .join(", ")
-  }
+  useEffect(() => {
+    if (watchedIngredients) {
+      const list = watchedIngredients
+        .split(",")
+        .map((i) => i.trim())
+        .filter(Boolean)
+      setIngredientsPreview(list)
+    } else setIngredientsPreview([])
+  }, [watchedIngredients])
 
-  const parseInstructionsFromNumbers = (instructions: string) => {
-    if (!instructions) return ""
-    return instructions
-      .split("\n")
-      .map((item) => item.replace(/^\d+\.\s*/, "").trim())
-      .filter((item) => item.length > 0)
-      .join(". ")
-  }
+  useEffect(() => {
+    if (watchedInstructions) {
+      const list = watchedInstructions
+        .split(/\.\s+|\n/)
+        .map((i) => i.trim())
+        .filter(Boolean)
+        .map((i) => (i.endsWith(".") ? i : i + "."))
+      setInstructionsPreview(list)
+    } else setInstructionsPreview([])
+  }, [watchedInstructions])
 
-  // Fetch recipe data for update mode
+  useEffect(() => {
+    if (watchedImageFile && watchedImageFile.length > 0) {
+      const file = watchedImageFile[0]
+      const objectUrl = URL.createObjectURL(file)
+      setImagePreviewUrl(objectUrl)
+      setUsePreviousImage(false) // A new file is selected, so don't use previous
+      return () => {
+        URL.revokeObjectURL(objectUrl)
+      }
+    } else {
+      setImagePreviewUrl(null)
+    }
+  }, [watchedImageFile])
+
   useEffect(() => {
     if (mode === "update" && recipeId && isClient) {
-      console.log("Fetching recipe with ID:", recipeId)
-      const fetchRecipeData = async () => {
-        try {
-          setIsLoading(true)
-          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/${recipeId}`)
-          console.log("Fetched recipe data:", response.data)
+      setIsLoading(true)
+      API.get(`/api/Recipe/${recipeId}`)
+        .then((res) => {
+          const data = res.data
+          console.log("Fetched recipe data:", data)
 
-          const fetchedData = response.data
+          const parsedIngredients =
+            data.ingredients
+              ?.split("\n")
+              .map((i: string) => i.replace(/^•\s*/, "").trim())
+              .join(", ") || ""
+          const parsedInstructions =
+            data.instructions
+              ?.split("\n")
+              .map((i: string) => i.replace(/^\d+\.\s*/, "").trim())
+              .join(". ") || ""
 
-          // Parse ingredients and instructions for editing
-          const parsedData = {
-            ...fetchedData,
-            ingredients: parseIngredientsFromBullets(fetchedData.ingredients),
-            instructions: parseInstructionsFromNumbers(fetchedData.instructions),
+          // Prioritize individual category fields if they exist, falling back to categoriesArray
+          const categoriesArray = data.categories || []
+          const mealType = data.mealType || categoriesArray[0] || ""
+          const cuisine = data.cuisine || categoriesArray[1] || ""
+          const diet = data.diet || categoriesArray[2] || ""
+          const occasion = data.occasion || categoriesArray[3] || ""
+          const skillLevel = data.skillLevel || categoriesArray[4] || ""
+
+          const resetData = {
+            ...data,
+            ingredients: parsedIngredients,
+            instructions: parsedInstructions,
+            mealType: mealType,
+            cuisine: cuisine,
+            diet: diet,
+            occasion: occasion,
+            skillLevel: skillLevel,
+            cookingTime: getCookingTimeOptionValue(data.cookingTime),
+          }
+          console.log("Data being passed to reset:", resetData)
+
+          reset(resetData)
+
+          console.log("Image URL from backend (data.image):", data.image)
+          setCurrentImage(data.image || "")
+          setUsePreviousImage(!!data.image) // Set to true if an image exists
+
+          // Extract and set the filename
+          if (data.image) {
+            setPreviousImageFileName(getFileNameFromUrl(data.image))
+          } else {
+            setPreviousImageFileName(null)
           }
 
-          setRecipeData(parsedData)
-          setCurrentImageUrl(fetchedData.imageUrl || "")
-
-          // Check if category is custom (not in predefined list)
-          if (!recipeCategories.includes(fetchedData.category)) {
-            setCustomCategory(fetchedData.category)
-            setShowCustomCategory(true)
-            parsedData.category = "Other"
+          console.log("Current image state after fetch:", data.image || "")
+        })
+        .catch((err) => {
+          console.error("Error fetching recipe data:", err)
+          let errorMessage = "Failed to load recipe data."
+          if (axios.isAxiosError(err) && err.response) {
+            errorMessage += ` Status: ${err.response.status}. Message: ${err.response.data?.message || err.message}`
+          } else if (err instanceof Error) {
+            errorMessage += ` Error: ${err.message}`
           }
-
-          reset(parsedData)
-        } catch (error) {
-          console.error("Error fetching recipe data:", error)
-          toast.error("Failed to load recipe data")
+          toast.error(errorMessage)
           router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
-        } finally {
-          setIsLoading(false)
-        }
-      }
-      fetchRecipeData()
-    } else if (mode === "create") {
-      setIsLoading(false)
+        })
+        .finally(() => setIsLoading(false))
     }
   }, [mode, recipeId, isClient, reset, router])
 
-  // Handle ingredients formatting
-  useEffect(() => {
-    if (watchedIngredients) {
-      const ingredientsList = watchedIngredients
-        .split(",")
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0)
-      setIngredientsPreview(ingredientsList)
-    } else {
-      setIngredientsPreview([])
-    }
-  }, [watchedIngredients])
-
-  // Handle instructions formatting
-  useEffect(() => {
-    if (watchedInstructions) {
-      const instructionsList = watchedInstructions
-        .split(/\.\s+|\n/)
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0)
-        .map((item) => (item.endsWith(".") ? item : item + "."))
-      setInstructionsPreview(instructionsList)
-    } else {
-      setInstructionsPreview([])
-    }
-  }, [watchedInstructions])
-
-  // Handle custom category
-  useEffect(() => {
-    if (watchedCategory === "Other") {
-      setShowCustomCategory(true)
-    } else {
-      setShowCustomCategory(false)
-      if (watchedCategory && watchedCategory !== "Other") {
-        setCustomCategory("")
-      }
-    }
-  }, [watchedCategory])
-
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, steps.length - 1))
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 0))
-
-  const formatIngredientsForSubmission = (ingredients: string) => {
-    return ingredients
+  const formatIngredientsForSubmission = (ingredients: string) =>
+    ingredients
       .split(",")
       .map((item) => `• ${item.trim()}`)
       .filter((item) => item.length > 2)
       .join("\n")
-  }
 
   const formatInstructionsForSubmission = (instructions: string) => {
-    const instructionsList = instructions
+    const list = instructions
       .split(/\.\s+|\n/)
       .map((item) => item.trim())
-      .filter((item) => item.length > 0)
+      .filter(Boolean)
+    return list.map((item, idx) => `${idx + 1}. ${item.endsWith(".") ? item : item + "."}`).join("\n")
+  }
 
-    return instructionsList.map((item, index) => `${index + 1}. ${item.endsWith(".") ? item : item + "."}`).join("\n")
+  const handleNextStep = async () => {
+    let isValid = false
+    if (step === 0) {
+      isValid = await trigger([
+        "title",
+        "mealType",
+        "cuisine",
+        "diet",
+        "occasion",
+        "skillLevel",
+        "cookingTime",
+        "portion",
+      ])
+    } else if (step === 1) {
+      isValid = await trigger(["ingredients", "instructions"])
+    } else if (step === 2) {
+      isValid = true
+    }
+
+    if (isValid) {
+      setStep((prev) => Math.min(prev + 1, steps.length - 1))
+    } else {
+      toast.error("Please fill in all required fields in this section.")
+    }
+  }
+
+  const prevStep = () => setStep((prev) => Math.max(prev - 1, 0))
+
+  const handleUsePreviousImage = () => {
+    setUsePreviousImage(true)
+    setImagePreviewUrl(null) // Clear any new image preview
+    setValue("imageFile", null as any) // Clear the file input value in react-hook-form
+    toast.success("Will use the previously uploaded image.")
   }
 
   const onSubmit = async (data: RecipeFormData) => {
-    console.log(`Form ${mode}:`, data)
     try {
       const formData = new FormData()
+
       formData.append("title", data.title)
 
-      // Use custom category if "Other" is selected
-      const finalCategory = data.category === "Other" ? customCategory : data.category
-      formData.append("category", finalCategory)
+      const categories = [data.mealType, data.cuisine, data.diet, data.occasion, data.skillLevel].filter(Boolean)
 
-      formData.append("cookingTime", data.cookingTime.toString())
+      formData.append("categories", JSON.stringify(categories))
+      formData.append("mealType", data.mealType || "")
+      formData.append("cuisine", data.cuisine || "")
+      formData.append("diet", data.diet || "")
+      formData.append("occasion", data.occasion || "")
+      formData.append("skillLevel", data.skillLevel || "")
+
+      formData.append("cookingTime", Number(data.cookingTime).toString())
       formData.append("portion", data.portion.toString())
 
-      // Format ingredients and instructions before submission
       const formattedIngredients = formatIngredientsForSubmission(data.ingredients)
       const formattedInstructions = formatInstructionsForSubmission(data.instructions)
 
       formData.append("ingredients", formattedIngredients)
       formData.append("instructions", formattedInstructions)
+
       formData.append("calories", data.calories.toString())
       formData.append("protein", data.protein.toString())
       formData.append("fat", data.fat.toString())
       formData.append("carbs", data.carbs.toString())
 
-      if (data.imageFile && data.imageFile.length > 0) {
+      // Only append imageFile if a new one is selected AND we're not explicitly using the previous image
+      if (data.imageFile && data.imageFile.length > 0 && !usePreviousImage) {
         formData.append("image", data.imageFile[0])
       }
+      // If in update mode and using previous image, we explicitly tell the backend to keep it
+      // by NOT sending a new 'image' field. Your backend should handle this by not updating the image.
+      // If your backend requires the old URL to be sent explicitly, you would uncomment this:
+      // else if (mode === "update" && usePreviousImage && currentImage) {
+      //   formData.append("image", currentImage); // Send the old URL back
+      // }
 
       const token = localStorage.getItem("token")
       if (!token) {
@@ -230,26 +377,21 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
       let response
       if (mode === "create") {
-        response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/addRecipe1`, formData, {
+        response = await API.post(`/api/Recipe/addRecipe1`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${token}`,
           },
         })
       } else {
-        response = await axios.put(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/updateRecipe/${recipeId}`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
+        response = await API.put(`/api/Recipe/updateRecipe/${recipeId}`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
-        )
+        })
       }
 
-      console.log(`Recipe ${mode}d successfully:`, response.data)
       toast.success(`Recipe ${mode}d successfully!`)
 
       if (mode === "create") {
@@ -257,8 +399,10 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
         setStep(0)
         setIngredientsPreview([])
         setInstructionsPreview([])
-        setCustomCategory("")
-        setShowCustomCategory(false)
+        setImagePreviewUrl(null)
+        setCurrentImage("")
+        setUsePreviousImage(false) // Reset for next create
+        setPreviousImageFileName(null) // Reset filename
       }
 
       router.push("/RecipeManagement/ManageRecipe/ManageRecipe")
@@ -266,7 +410,6 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
       if (axios.isAxiosError(error)) {
         toast.error(`Failed to ${mode} recipe: ` + (error.response?.data?.message || error.message))
       } else {
-        console.error("Unexpected error:", error)
         toast.error("An unexpected error occurred.")
       }
     }
@@ -274,7 +417,7 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
 
   if (!isClient) return null
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -283,7 +426,6 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
         </div>
       </div>
     )
-  }
 
   return (
     <div className="min-h-screen relative pl-16">
@@ -307,265 +449,286 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              {step === 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block font-medium mb-2">Recipe Title</label>
-                    <input
-                      {...register("title", { required: "Title is required" })}
-                      className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter recipe title"
-                    />
-                    {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block font-medium mb-2">Category</label>
-                    <select
-                      {...register("category", { required: "Category is required" })}
-                      className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option value="">-- Select Category --</option>
-                      {recipeCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>}
-
-                    {showCustomCategory && (
-                      <div className="mt-3">
-                        <input
-                          type="text"
-                          value={customCategory}
-                          onChange={(e) => setCustomCategory(e.target.value)}
-                          placeholder="Enter custom category"
-                          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block font-medium mb-2">Cooking Time (minutes)</label>
-                    <input
-                      type="number"
-                      {...register("cookingTime", {
-                        required: "Cooking time is required",
-                        min: { value: 1, message: "Cooking time must be at least 1 minute" },
-                      })}
-                      className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., 30"
-                    />
-                    {errors.cookingTime && <p className="text-red-500 text-sm mt-1">{errors.cookingTime.message}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block font-medium mb-2">Servings</label>
-                    <input
-                      type="number"
-                      {...register("portion", {
-                        required: "Number of servings is required",
-                        min: { value: 1, message: "Must serve at least 1 person" },
-                      })}
-                      className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., 4"
-                    />
-                    {errors.portion && <p className="text-red-500 text-sm mt-1">{errors.portion.message}</p>}
-                  </div>
-                </div>
-              )}
-
-              {step === 1 && (
-                <div className="space-y-6">
-                  <div>
-                    <label className="block font-medium mb-2">
-                      Ingredients
-                      <span className="text-sm text-gray-500 font-normal">(Separate each ingredient with a comma)</span>
-                    </label>
-                    <textarea
-                      {...register("ingredients", { required: "Ingredients are required" })}
-                      className="w-full border rounded px-3 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., 2 cups flour, 1 cup sugar, 3 eggs, 1/2 cup butter"
-                    />
-                    {errors.ingredients && <p className="text-red-500 text-sm mt-1">{errors.ingredients.message}</p>}
-
-                    {ingredientsPreview.length > 0 && (
-                      <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                        <h4 className="font-medium text-green-800 mb-2">Preview:</h4>
-                        <ul className="space-y-1">
-                          {ingredientsPreview.map((ingredient, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="text-green-600 mr-2">•</span>
-                              <span className="text-gray-700">{ingredient}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block font-medium mb-2">
-                      Instructions
-                      <span className="text-sm text-gray-500 font-normal">
-                        (Separate each step with a period and space, or use new lines)
-                      </span>
-                    </label>
-                    <textarea
-                      {...register("instructions", { required: "Instructions are required" })}
-                      className="w-full border rounded px-3 py-2 h-40 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., Preheat oven to 350°F. Mix flour and sugar in a bowl. Add eggs one at a time. Bake for 25 minutes."
-                    />
-                    {errors.instructions && <p className="text-red-500 text-sm mt-1">{errors.instructions.message}</p>}
-
-                    {instructionsPreview.length > 0 && (
-                      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-medium text-blue-800 mb-2">Preview:</h4>
-                        <ol className="space-y-2">
-                          {instructionsPreview.map((instruction, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="text-blue-600 font-medium mr-3 mt-0.5">{index + 1}.</span>
-                              <span className="text-gray-700">{instruction}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-medium mb-2">Calories (per serving)</label>
-                      <input
-                        type="number"
-                        {...register("calories", {
-                          required: "Calories are required",
-                          min: { value: 0, message: "Calories cannot be negative" },
-                        })}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="e.g., 250"
-                      />
-                      {errors.calories && <p className="text-red-500 text-sm mt-1">{errors.calories.message}</p>}
-                    </div>
-
-                    <div>
-                      <label className="block font-medium mb-2">Protein (g)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        {...register("protein", {
-                          required: "Protein content is required",
-                          min: { value: 0, message: "Protein cannot be negative" },
-                        })}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="e.g., 15.5"
-                      />
-                      {errors.protein && <p className="text-red-500 text-sm mt-1">{errors.protein.message}</p>}
-                    </div>
-
-                    <div>
-                      <label className="block font-medium mb-2">Fat (g)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        {...register("fat", {
-                          required: "Fat content is required",
-                          min: { value: 0, message: "Fat cannot be negative" },
-                        })}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="e.g., 8.2"
-                      />
-                      {errors.fat && <p className="text-red-500 text-sm mt-1">{errors.fat.message}</p>}
-                    </div>
-
-                    <div>
-                      <label className="block font-medium mb-2">Carbohydrates (g)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        {...register("carbs", {
-                          required: "Carbohydrate content is required",
-                          min: { value: 0, message: "Carbohydrates cannot be negative" },
-                        })}
-                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="e.g., 30.5"
-                      />
-                      {errors.carbs && <p className="text-red-500 text-sm mt-1">{errors.carbs.message}</p>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block font-medium mb-2">Recipe Image</label>
-                    {mode === "update" && currentImageUrl && (
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-600 mb-2">Current image:</p>
-                        <img
-                          src={currentImageUrl || "/placeholder.svg"}
-                          alt="Current recipe"
-                          className="w-32 h-32 object-cover rounded-lg border"
-                        />
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      {...register("imageFile")}
-                      className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      {mode === "update" && currentImageUrl
-                        ? "Upload a new image to replace the current one"
-                        : "Upload a high-quality image of your finished recipe"}
-                    </p>
-                    {errors.imageFile && <p className="text-red-500 text-sm mt-1">{errors.imageFile.message}</p>}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-
-            <div className="flex justify-between pt-6">
-              <button
-                type="button"
-                onClick={prevStep}
-                className={`px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors ${
-                  step === 0 ? "invisible" : ""
-                }`}
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
               >
-                Back
-              </button>
+                {step === 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block font-medium mb-2">Recipe Title</label>
+                      <input
+                        {...register("title", { required: "Title is required" })}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Enter recipe title"
+                      />
+                      {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
+                    </div>
 
-              {step < steps.length - 1 ? (
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                >
-                  {mode === "create" ? "Save Recipe" : "Update Recipe"}
-                </button>
-              )}
-            </div>
-          </form>
+                    <CategorySelect name="mealType" label="Meal Type" options={mealTypeOptions} required />
+                    <CategorySelect name="cuisine" label="Cuisine" options={cuisineOptions} />
+                    <CategorySelect name="diet" label="Diet / Lifestyle" options={dietOptions} />
+                    <CategorySelect name="occasion" label="Occasion" options={occasionOptions} />
+                    <CategorySelect name="skillLevel" label="Skill Level" options={skillLevelOptions} />
+
+                    <CategorySelect name="cookingTime" label="Cooking Time" options={cookingTimeOptions} required />
+
+                    <div>
+                      <label className="block font-medium mb-2">Servings</label>
+                      <input
+                        type="number"
+                        {...register("portion", {
+                          required: "Number of servings is required",
+                          min: { value: 1, message: "Must serve at least 1 person" },
+                        })}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="e.g., 4"
+                      />
+                      {errors.portion && <p className="text-red-500 text-sm mt-1">{errors.portion.message}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {step === 1 && (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block font-medium mb-2">
+                        Ingredients
+                        <span className="text-sm text-gray-500 font-normal">
+                          (Separate each ingredient with a comma)
+                        </span>
+                      </label>
+                      <textarea
+                        {...register("ingredients", { required: "Ingredients are required" })}
+                        className="w-full border rounded px-3 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="e.g., 2 cups flour, 1 cup sugar, 3 eggs, 1/2 cup butter"
+                      />
+                      {errors.ingredients && <p className="text-red-500 text-sm mt-1">{errors.ingredients.message}</p>}
+
+                      {ingredientsPreview.length > 0 && (
+                        <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                          <h4 className="font-medium text-green-800 mb-2">Preview:</h4>
+                          <ul className="space-y-1">
+                            {ingredientsPreview.map((ingredient, index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="text-green-700 mr-2">•</span>
+                                <span className="text-gray-700">{ingredient}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block font-medium mb-2">
+                        Instructions
+                        <span className="text-sm text-gray-500 font-normal">
+                          (Separate each step with a period and space, or use new lines)
+                        </span>
+                      </label>
+                      <textarea
+                        {...register("instructions", { required: "Instructions are required" })}
+                        className="w-full border rounded px-3 py-2 h-40 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="e.g., Preheat oven to 350°F. Mix flour and sugar in a bowl. Add eggs one at a time. Bake for 25 minutes."
+                      />
+                      {errors.instructions && (
+                        <p className="text-red-500 text-sm mt-1">{errors.instructions.message}</p>
+                      )}
+
+                      {instructionsPreview.length > 0 && (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                          <h4 className="font-medium text-blue-800 mb-2">Preview:</h4>
+                          <ol className="space-y-2">
+                            {instructionsPreview.map((instruction, index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="text-blue-600 font-medium mr-3 mt-0.5">{index + 1}.</span>
+                                <span className="text-gray-700">{instruction}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-medium mb-2">Calories (per serving)</label>
+                        <input
+                          type="number"
+                          {...register("calories", {
+                            required: "Calories are required",
+                            min: { value: 0, message: "Calories cannot be negative" },
+                          })}
+                          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="e.g., 250"
+                        />
+                        {errors.calories && <p className="text-red-500 text-sm mt-1">{errors.calories.message}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-2">Protein (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register("protein", {
+                            required: "Protein content is required",
+                            min: { value: 0, message: "Protein cannot be negative" },
+                          })}
+                          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="e.g., 15.5"
+                        />
+                        {errors.protein && <p className="text-red-500 text-sm mt-1">{errors.protein.message}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-2">Fat (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register("fat", {
+                            required: "Fat content is required",
+                            min: { value: 0, message: "Fat cannot be negative" },
+                          })}
+                          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="e.g., 8.2"
+                        />
+                        {errors.fat && <p className="text-red-500 text-sm mt-1">{errors.fat.message}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block font-medium mb-2">Carbohydrates (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register("carbs", {
+                            required: "Carbohydrate content is required",
+                            min: { value: 0, message: "Carbohydrates cannot be negative" },
+                          })}
+                          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                          placeholder="e.g., 30.5"
+                        />
+                        {errors.carbs && <p className="text-red-500 text-sm mt-1">{errors.carbs.message}</p>}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-medium mb-2">Recipe Image</label>
+                      {mode === "update" && currentImage && usePreviousImage && !imagePreviewUrl && (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600 mb-2">Current image:</p>
+                          <img
+                            src={currentImage || "/image/default.png"}
+                            alt="Current recipe"
+                            className="w-32 h-32 object-cover rounded-lg border"
+                          />
+                          {previousImageFileName && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Currently: <strong>{previousImageFileName}</strong>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {imagePreviewUrl && (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600 mb-2">New image preview:</p>
+                          <img
+                            src={imagePreviewUrl || "/placeholder.svg"}
+                            alt="Recipe preview"
+                            className="w-32 h-32 object-cover rounded-lg border"
+                          />
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        {...register("imageFile")}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        {mode === "update" && currentImage
+                          ? "Upload a new image to replace the current one"
+                          : "Upload a high-quality image of your finished recipe"}
+                      </p>
+                      {errors.imageFile && <p className="text-red-500 text-sm mt-1">{errors.imageFile.message}</p>}
+
+                      {mode === "update" && currentImage && !imagePreviewUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleUsePreviousImage}
+                          className="mt-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        >
+                          Use Previous Image
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
+              <div className="flex justify-between mt-8">
+                {step > 0 && (
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
+                  >
+                    Back
+                  </button>
+                )}
+                {step < steps.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded ml-auto"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded ml-auto disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        {mode === "create" ? "Submitting..." : "Updating..."}
+                      </>
+                    ) : mode === "create" ? (
+                      "Submit Recipe"
+                    ) : (
+                      "Update Recipe"
+                    )}
+                  </button>
+                )}
+              </div>
+            </form>
+          </FormProvider>
         </div>
       </div>
     </div>
