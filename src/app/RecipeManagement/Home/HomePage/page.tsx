@@ -70,6 +70,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
+
         const queryParams = new URLSearchParams();
 
         if (filters.searchTerm) queryParams.append("searchTerm", filters.searchTerm);
@@ -86,6 +87,7 @@ const HomePage = () => {
 
         const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/homePage?${queryParams.toString()}`;
         const response = await axios.get(url);
+          
         setRecipes(response.data);
         setCurrentPage(1);
       } catch (error) {
