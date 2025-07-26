@@ -5,6 +5,8 @@ import { FaStar, FaThumbsUp, FaArrowLeft, FaUser, FaUtensils } from 'react-icons
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import axios from 'axios';
+import { useSession } from "next-auth/react";
+import { useAuth } from "@/app/context/authContext"; // Add this import
 
 interface Recipe {
   id: string;
@@ -23,6 +25,8 @@ export default function VoteAndRateChallenge() {
   const params = useParams();
   const router = useRouter();
   const challengeId = params.id as string;
+  const { data: session } = useSession();
+  const { user } = useAuth(); // Get user from AuthProvider
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [userVotes, setUserVotes] = useState<{ [key: string]: 'up' | null }>({});
@@ -82,11 +86,52 @@ export default function VoteAndRateChallenge() {
     if (challengeId) fetchChallengeDetails();
   }, [challengeId]);
 
-  const handleVote = (recipeId: string, voteType: 'up') => {
-    setUserVotes(prev => ({
-      ...prev,
-      [recipeId]: prev[recipeId] === voteType ? null : voteType
-    }));
+  const handleVote = async (recipeId: string, voteType: 'up') => {
+    if (userVotes[recipeId] === 'up') return;
+    try {
+      const userEmail = user?.email || session?.user?.email || localStorage.getItem('userEmail');
+      console.log("Voting as:", userEmail); // Should now show correct email
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/vote`,
+        {
+          userEmail,
+          submissionId: recipeId,
+          challengeId,
+        }
+      );
+      if (res.data && res.data.success) {
+        // Refetch all recipes to get the latest vote counts
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}`
+        );
+        const data = response.data;
+        if (Array.isArray(data)) {
+          const mapped = data.map((recipe: any) => ({
+            id: recipe.submissionId,
+            fullName: recipe.fullName,
+            recipeName: recipe.recipeName,
+            ingredients: recipe.ingredients,
+            recipeDescription: recipe.recipeDescription,
+            recipeImage: recipe.recipeImage,
+            challengeCategory: recipe.challengeCategory,
+            votes: recipe.votes,
+            rating: recipe.rating,
+            totalRatings: recipe.totalRatings,
+          }));
+          setRecipes(mapped);
+        } else {
+          setRecipes([]);
+        }
+        setUserVotes(prev => ({
+          ...prev,
+          [recipeId]: voteType
+        }));
+      } else {
+        setError(res.data.message || 'Failed to vote. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to vote. Please try again.');
+    }
   };
 
   const handleRating = (recipeId: string, rating: number) => {
@@ -242,13 +287,14 @@ export default function VoteAndRateChallenge() {
                       </div>
                       {/* Voting Section */}
                       <div className="flex items-center justify-between mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                        <span className="text-sm font-semibold text-gray-700">Community Vote</span>
+                        <span className="text-sm font-semibold text-gray-700">Vote</span>
                         <div className="flex items-center space-x-3">
                           <button
                             onClick={() => handleVote(recipe.id, 'up')}
+                            disabled={userVotes[recipe.id] === 'up'}
                             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
                               userVotes[recipe.id] === 'up'
-                                ? 'bg-green-500 text-white shadow-lg scale-105'
+                                ? 'bg-green-500 text-white shadow-lg scale-105 cursor-not-allowed opacity-70'
                                 : 'bg-white text-gray-600 hover:bg-green-100 hover:text-green-600 shadow-sm'
                             }`}
                           >

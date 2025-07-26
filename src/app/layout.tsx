@@ -7,7 +7,7 @@ import { Toaster } from "react-hot-toast";
 import SideBar from "@/components/SideBar";
 import Navbar from "../components/NavBar";
 import { AuthProvider } from "./context/authContext";
-
+import { SessionProvider } from "next-auth/react";
 
 export default function RootLayout({
   children,
@@ -26,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex flex-col min-h-screen">
+        <SessionProvider>
         <AuthProvider>
         <Toaster position="bottom-right" reverseOrder={false} />
 
@@ -51,6 +52,7 @@ export default function RootLayout({
           </>
         )}
         </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   );
