@@ -40,7 +40,7 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
     { icon: FaClipboardList, label: "Recipe Forum", route: "/Forum" },
     
     { icon: FaTrophy, label: "Recipe Challenge", route: "/RecipeChallenge" },
-    { icon: FaCog, label: "Settings", route: "/Settings" },
+    { icon: FaCog, label: "Settings", route: "/NotificationPage" },
   ];
 
   const logoutItem = isAuthenticated
