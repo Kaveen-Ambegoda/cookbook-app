@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import { useReviewCount } from "./useReviewCount";
 import useIsFavorited from "./useIsFavorited";
 import { useRouter } from "next/navigation";
-
 import {
   FaHeart,
   FaCommentDots,
@@ -42,6 +41,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
     typeof isFavorite === "boolean" ? isFavorite : hookIsFavorited;
 
   const [favorited, setFavorited] = useState<boolean>(initialIsFavorited);
+  const [showShareBox, setShowShareBox] = useState(false);
 
   useEffect(() => {
     setFavorited(initialIsFavorited);
@@ -83,8 +83,10 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
     }
   };
 
+  const shareUrl = `${window.location.origin}/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`;
+
   return (
-    <div className="flex flex-col justify-between bg-white p-5 rounded-lg shadow-lg transition transform hover:scale-105 w-full max-w-sm mx-auto min-h-[480px]">
+    <div className="flex flex-col justify-between bg-white p-5 rounded-lg shadow-lg transition transform hover:scale-105 w-full max-w-sm mx-auto min-h-[480px] relative">
       {/* Image */}
       <div className="flex justify-center">
         <Image
@@ -114,7 +116,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex justify-between items-center bg-gray-100 p-2 rounded-lg mt-5 w-full max-w-xs mx-auto">
+      <div className="flex justify-between items-center bg-gray-100 p-2 rounded-lg mt-5 w-full max-w-xs mx-auto relative">
         <button
           onClick={handleFavorite}
           className="flex items-center space-x-1 group"
@@ -130,7 +132,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
         </button>
 
         <Link
-          href={`/RecipeManagement/Review/${recipe.id}`}
+          href={`/RecipeManagement/review-page/${recipe.id}`}
           className="flex items-center space-x-1 hover:scale-105 transition"
         >
           <FaCommentDots className="text-blue-500 text-xl" />
@@ -139,10 +141,31 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
           </span>
         </Link>
 
-        <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition">
-          <FaShareAlt className="text-lg" />
-          <span className="font-medium">Share</span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowShareBox((prev) => !prev)}
+            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition"
+          >
+            <FaShareAlt className="text-lg" />
+            <span className="font-medium">Share</span>
+          </button>
+
+          {showShareBox && (
+            <div className="absolute top-10 right-0 bg-white border border-gray-300 shadow-md rounded-md p-3 z-10 w-64">
+              <p className="text-xs text-gray-700 break-all mb-2">{shareUrl}</p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(shareUrl);
+                  toast.success("Link copied!");
+                  setShowShareBox(false);
+                }}
+                className="text-sm px-2 py-1 bg-green-600 text-white rounded hover:bg-green-800"
+              >
+                Copy
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* View Button */}

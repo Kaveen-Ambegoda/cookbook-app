@@ -1,11 +1,11 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { FaSearch, FaBars, FaBell, FaUserCircle } from 'react-icons/fa';
+import { FaSearch, FaBars, FaUserCircle } from 'react-icons/fa';
 import { inter } from '@/app/utils/fonts';
 import Image from 'next/image';
 import SearchBar from './SearchBar';
-import { useState} from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/app/context/authContext';
@@ -66,7 +66,6 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
   }
 
   return (
-    
     <nav className="bg-yellow-400 px-6 py-3 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50">
       <div className="flex items-center space-x-3">
         <button className="text-gray-800 text-xl" onClick={() => setIsOpen((prev) => !prev)}>
@@ -87,21 +86,7 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
       <div className="flex items-center space-x-4">
         <SearchBar />
 
-        <button
-          className="text-gray-800 text-xl"
-          onClick={() => {
-            if (isAuthenticated) {
-              router.push("/NotificationPage");
-            } else {
-              toast.error("To see notifications, please sign in.");
-              setTimeout(() => {
-                router.push("/Login_Register/Login");
-              }, 1000); 
-            }
-          }}
-        >
-          <FaBell />
-        </button>    
+        {/* Removed Notification Bell Button */}
 
         <div className="relative">
           <button className="text-gray-800 text-xl cursor-pointer" onClick={toggleDropdown}>
@@ -160,7 +145,6 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
           )}
         </div>
       </div>
-
     </nav>
   );
 }
