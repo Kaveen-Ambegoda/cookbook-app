@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bell, Star, Clock, CheckCircle, X } from "lucide-react";
+import { Bell, Star, Clock, CheckCircle, X, MessageCircle } from "lucide-react"; // Added MessageCircle
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/context/authContext"; // ✅ Import auth context
 
 interface NotificationDto {
   id: number;
@@ -33,11 +35,19 @@ const getIcon = (type: string) => {
 };
 
 const NotificationsPage = () => {
+  const { isAuthenticated } = useAuth(); // ✅ Access auth status
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState("all");
 
+  // ✅ Redirect if not logged in
   useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/Login_Register/Login");
+      return;
+    }
+
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -56,7 +66,7 @@ const NotificationsPage = () => {
     };
 
     fetchNotifications();
-  }, []);
+  }, [isAuthenticated, router]);
 
   const filteredNotifications =
     filter === "all"
