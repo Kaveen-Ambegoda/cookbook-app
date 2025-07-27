@@ -7,6 +7,7 @@ import Image from 'next/image';
 import axios from 'axios';
 import { useSession } from "next-auth/react";
 import { useAuth } from "@/app/context/authContext"; // Add this import
+import toast from 'react-hot-toast';
 
 interface Recipe {
   id: string;
@@ -34,6 +35,7 @@ export default function VoteAndRateChallenge() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [challengeName, setChallengeName] = useState<string>('');
+  const [raterCount, setRaterCount] = useState(0);
 
   useEffect(() => {
     async function fetchRecipes() {
@@ -86,11 +88,69 @@ export default function VoteAndRateChallenge() {
     if (challengeId) fetchChallengeDetails();
   }, [challengeId]);
 
+  useEffect(() => {
+    async function fetchUserVotes() {
+      const userEmail = user?.email || session?.user?.email || localStorage.getItem('userEmail');
+      if (!userEmail || !challengeId) return;
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/vote/user?userEmail=${userEmail}&challengeId=${challengeId}`
+        );
+        const votes: { [key: string]: 'up' } = {};
+        res.data.forEach((vote: any) => {
+          votes[vote.submissionId] = 'up';
+        });
+        setUserVotes(votes);
+      } catch {
+        // ignore error
+      }
+    }
+    fetchUserVotes();
+  }, [user, session, challengeId]);
+
+  useEffect(() => {
+    async function fetchRaterCount() {
+      if (!challengeId) return;
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/vote/raters?challengeId=${challengeId}`
+        );
+        setRaterCount(res.data.count || 0);
+      } catch {
+        setRaterCount(0);
+      }
+    }
+    fetchRaterCount();
+  }, [challengeId]);
+
+  useEffect(() => {
+    async function fetchUserRatings() {
+      const userEmail = user?.email || session?.user?.email || localStorage.getItem('userEmail');
+      if (!userEmail || !challengeId) return;
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/vote/user-ratings?userEmail=${userEmail}&challengeId=${challengeId}`
+        );
+        // Convert array to object: { [submissionId]: stars }
+        const ratingsObj: { [submissionId: string]: number } = {};
+        res.data.forEach((r: { submissionId: string, stars: number }) => {
+          ratingsObj[r.submissionId] = r.stars;
+        });
+        setUserRatings(ratingsObj);
+        localStorage.setItem('userRatings', JSON.stringify(ratingsObj)); // Optional: keep local cache
+      } catch {
+        // fallback to localStorage if needed
+        const storedRatings = localStorage.getItem('userRatings');
+        if (storedRatings) setUserRatings(JSON.parse(storedRatings));
+      }
+    }
+    fetchUserRatings();
+  }, [user, session, challengeId]);
+
   const handleVote = async (recipeId: string, voteType: 'up') => {
     if (userVotes[recipeId] === 'up') return;
     try {
       const userEmail = user?.email || session?.user?.email || localStorage.getItem('userEmail');
-      console.log("Voting as:", userEmail); // Should now show correct email
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/vote`,
         {
@@ -127,18 +187,66 @@ export default function VoteAndRateChallenge() {
           [recipeId]: voteType
         }));
       } else {
+        toast.error(res.data.message || 'Failed to vote. Please try again.');
         setError(res.data.message || 'Failed to vote. Please try again.');
       }
     } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to vote. Please try again.');
       setError(err?.response?.data?.message || 'Failed to vote. Please try again.');
     }
   };
 
-  const handleRating = (recipeId: string, rating: number) => {
+  const handleRating = async (recipeId: string, rating: number) => {
     setUserRatings(prev => ({
       ...prev,
       [recipeId]: rating
     }));
+    await handleSubmitRating(recipeId, rating);
+  };
+
+  const handleSubmitRating = async (recipeId: string, rating: number) => {
+    const userEmail = user?.email || session?.user?.email || localStorage.getItem('userEmail');
+    if (!userEmail || !challengeId) return;
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/vote/rate`,
+        {
+          userEmail,
+          submissionId: recipeId,
+          challengeId,
+          stars: rating,
+        }
+      );
+      if (res.data && res.data.success) {
+        toast.success('Rating submitted successfully!');
+        // Refetch recipes to update ratings
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}`
+        );
+        const data = response.data;
+        if (Array.isArray(data)) {
+          const mapped = data.map((recipe: any) => ({
+            id: recipe.submissionId,
+            fullName: recipe.fullName,
+            recipeName: recipe.recipeName,
+            ingredients: recipe.ingredients,
+            recipeDescription: recipe.recipeDescription,
+            recipeImage: recipe.recipeImage,
+            challengeCategory: recipe.challengeCategory,
+            votes: recipe.votes,
+            rating: recipe.rating,
+            totalRatings: recipe.totalRatings,
+          }));
+          setRecipes(mapped);
+        } else {
+          setRecipes([]);
+        }
+      } else {
+        toast.error(res.data.message || 'Failed to rate. Please try again.');
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to rate. Please try again.');
+    }
   };
 
   const renderStars = (rating: number, recipeId: string, interactive: boolean = false) => {
@@ -187,23 +295,19 @@ export default function VoteAndRateChallenge() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Loading/Error */}
+          {/* Loading */}
           {loading && (
             <div className="flex justify-center items-center py-12">
               <span className="text-orange-500 font-semibold text-lg">Loading recipes...</span>
             </div>
           )}
-          {error && (
-            <div className="flex justify-center items-center py-6">
-              <span className="text-red-500 font-semibold">{error}</span>
-            </div>
-          )}
 
-          {!loading && !error && (
+          {/* Always show recipe cards */}
+          {!loading && (
             <>
               {/* Stats Bar */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-8">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
                   <div className="bg-blue-50 rounded-lg p-3">
                     <div className="text-2xl font-bold text-blue-600">{recipes.length}</div>
                     <div className="text-sm text-gray-600">Total Recipes</div>
@@ -213,12 +317,6 @@ export default function VoteAndRateChallenge() {
                       {recipes.reduce((sum, recipe) => sum + recipe.votes, 0)}
                     </div>
                     <div className="text-sm text-gray-600">Total Votes</div>
-                  </div>
-                  <div className="bg-yellow-50 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-yellow-600">
-                      {recipes.reduce((sum, recipe) => sum + recipe.totalRatings, 0)}
-                    </div>
-                    <div className="text-sm text-gray-600">Total Ratings</div>
                   </div>
                 </div>
               </div>
@@ -286,22 +384,32 @@ export default function VoteAndRateChallenge() {
                         </span>
                       </div>
                       {/* Voting Section */}
-                      <div className="flex items-center justify-between mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                        <span className="text-sm font-semibold text-gray-700">Vote</span>
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => handleVote(recipe.id, 'up')}
-                            disabled={userVotes[recipe.id] === 'up'}
-                            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                              userVotes[recipe.id] === 'up'
-                                ? 'bg-green-500 text-white shadow-lg scale-105 cursor-not-allowed opacity-70'
-                                : 'bg-white text-gray-600 hover:bg-green-100 hover:text-green-600 shadow-sm'
+                      <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">Vote</span>
+                        <button
+                          onClick={() => {
+                            if (userVotes[recipe.id] === 'up') {
+                              toast('You have already voted for this recipe!');
+                              return;
+                            }
+                            handleVote(recipe.id, 'up');
+                          }}
+                          className={`relative flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 border border-gray-200 cursor-pointer
+                            ${userVotes[recipe.id] === 'up'
+                              ? 'bg-green-500 text-white'
+                              : 'bg-white text-gray-600 hover:bg-green-50 hover:text-green-600'
                             }`}
-                          >
-                            <FaThumbsUp className="text-sm" />
-                            <span className="text-sm font-semibold">{recipe.votes}</span>
-                          </button>
-                        </div>
+                        >
+                          <span className="relative group">
+                            <FaThumbsUp className={`text-sm ${userVotes[recipe.id] === 'up' ? 'text-green-200' : 'text-gray-400'}`} />
+                            {userVotes[recipe.id] === 'up' && (
+                              <span className="absolute left-1/2 -translate-x-1/2 -top-8 bg-green-700 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                You already voted!
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-sm font-medium ml-2">{recipe.votes}</span>
+                        </button>
                       </div>
                       {/* Rating Section */}
                       <div className="border-t border-gray-100 pt-4">
@@ -316,7 +424,7 @@ export default function VoteAndRateChallenge() {
                           )}
                         </div>
                         <div className="flex items-center justify-center space-x-2 p-3 bg-yellow-50 rounded-xl">
-                          {renderStars(0, recipe.id, true)}
+                          {renderStars(userRatings[recipe.id] || 0, recipe.id, true)}
                         </div>
                         {userRatings[recipe.id] && (
                           <div className="mt-3 p-3 bg-green-50 rounded-lg">
