@@ -1,7 +1,7 @@
-// HomeNavBar.tsx
 import React from "react";
 import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SearchBar from "@/components/SearchBar"; // Ensure this path is correct
 
 interface HomeNavBarProps {
   onFilterClick: () => void;
@@ -17,8 +17,9 @@ const HomeNavBar: React.FC<HomeNavBarProps> = ({
   onMealTypeClick,
 }) => {
   return (
-    <nav className="bg-gray-100 border-b border-gray-300 px-0 py-3 flex items-center justify-between flex-wrap gap-x-6 text-sm font-semibold">
-      <div className="flex flex-wrap gap-x-6 pl-4">
+    <nav className="bg-gray-100 border-b border-gray-300 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-sm font-semibold">
+      {/* Meal type links */}
+      <div className="flex flex-wrap gap-x-6">
         <a
           href="#"
           onClick={() => onMealTypeClick(null)}
@@ -26,7 +27,7 @@ const HomeNavBar: React.FC<HomeNavBarProps> = ({
             selectedMealType === null ? "text-orange-600 underline" : "text-black"
           }`}
         >
-          All Recipes
+          All Recipies
         </a>
         {mealTypeOptions.map((mealType, index) => (
           <a
@@ -42,14 +43,20 @@ const HomeNavBar: React.FC<HomeNavBarProps> = ({
         ))}
       </div>
 
-      <Button
-        variant="outline"
-        className="flex items-center gap-4 text-sm bg-orange-600 hover:bg-green-700 hover:text-white text-white mr-4"
-        onClick={onFilterClick}
-      >
-        <Filter className="w-4 h-4" />
-        Filter
-      </Button>
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+        <div className="w-full sm:w-96">
+          <SearchBar />
+        </div>
+        <Button
+          variant="outline"
+          className="bg-orange-600 hover:bg-green-700 hover:text-white text-white"
+          onClick={onFilterClick}
+        >
+          <Filter className="w-4 h-4 mr-2" />
+          Filter
+        </Button>
+      </div>
     </nav>
   );
 };

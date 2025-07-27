@@ -4,7 +4,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FaSearch, FaBars, FaUserCircle } from 'react-icons/fa';
 import { inter } from '@/app/utils/fonts';
 import Image from 'next/image';
-import SearchBar from './SearchBar';
 import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -83,8 +82,8 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
         <h1 className="text-xl font-bold pl-2 text-gray-900">CookBook</h1>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <SearchBar />
+      <div className="flex items-center space-x-4 p-2">
+
 
         {/* Removed Notification Bell Button */}
 
