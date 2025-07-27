@@ -57,8 +57,8 @@ export default function VoteAndRateChallenge() {
             recipeImage: recipe.recipeImage,
             challengeCategory: recipe.challengeCategory,
             votes: recipe.votes,
-            rating: recipe.rating,
-            totalRatings: recipe.totalRatings,
+            rating: recipe.averageRating ?? 0, // <-- use averageRating
+            totalRatings: recipe.totalRatings, // <-- use totalRatings
           }));
           setRecipes(mapped);
         } else {
@@ -376,7 +376,7 @@ export default function VoteAndRateChallenge() {
                             {renderStars(recipe.rating, recipe.id)}
                           </div>
                           <span className="text-sm font-medium text-gray-700">
-                            {recipe.rating}
+                            {(recipe.rating ?? 0).toFixed(1)}
                           </span>
                         </div>
                         <span className="text-xs text-gray-500">
