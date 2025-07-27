@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaCalendarAlt, FaTrophy, FaShareAlt } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 export interface ChallengeDetail {
   id: string;
@@ -19,8 +20,11 @@ interface ChallengeProps {
 }
 
 const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
-  console.log("Rendering challenge:", challenge);
-  console.log("Image URL:", challenge.img); // For debug
+  const router = useRouter();
+
+  const handleLeaderboardClick = () => {
+    router.push(`/RecipeChallenge/JoinChallengePage/${challenge.id}/leaderBoard`);
+  };
 
   return (
     <div>
@@ -78,7 +82,10 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
 
               {/* Action Buttons */}
               <div className="mt-auto pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-                <button className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition">
+                <button
+                  className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition"
+                  onClick={handleLeaderboardClick}
+                >
                   <FaShareAlt className="text-lg" />
                   <span className="font-medium">LeaderBoard</span>
                 </button>

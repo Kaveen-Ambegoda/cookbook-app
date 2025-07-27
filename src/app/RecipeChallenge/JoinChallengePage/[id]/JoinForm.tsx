@@ -39,12 +39,11 @@ interface JoinFormProps {
 
 const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
   const router = useRouter();
-  const { username } = useAuth(); // get username from context
+  const { user } = useAuth();
+const username = user?.username ?? "";
 
   // Mock function: Replace with your actual user fetching logic
-  const getCurrentUser = () => ({
-    name: username 
-  });
+  
 
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
