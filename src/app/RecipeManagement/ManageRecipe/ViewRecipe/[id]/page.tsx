@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import API from "@/app/utils/axiosInstance";
-import FeedbackHighlight from '@/components/FeedbackHighlight';
-import SimpleFooter from "@/components/SimpleFooter";
+import FeedbackHighlight from '@/Components/FeedbackHighlight';
+import SimpleFooter from "@/Components/SimpleFooter";
 
 interface Recipe {
   id: number;

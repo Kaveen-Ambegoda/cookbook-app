@@ -6,7 +6,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push('/Layouts/dashboard');
+    router.push('Admin/Layouts/dashboard');
   }, [router]);
 
   return null; // Rendering nothing as we are redirecting

@@ -1,7 +1,9 @@
 import { Menu, Bell, User } from 'lucide-react';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Header({ openSidebar }: { openSidebar: () => void }) {
+  const router = useRouter();
   return (
     <header className="flex items-center justify-between h-16 px-6 border-b border-slate-200 bg-white shadow-sm sticky top-0 z-10">
       <div className="flex items-center">
@@ -22,7 +24,8 @@ export default function Header({ openSidebar }: { openSidebar: () => void }) {
       
       <div className="flex items-center space-x-4">
         {/* Notification Bell */}
-        <button className="p-2 rounded-full hover:bg-slate-100 text-slate-600 relative transition-colors duration-200">
+        <button  onClick={() => router.push('Admin/Layouts/notifications')}
+          className="p-2 rounded-full hover:bg-slate-100 text-slate-600 relative transition-colors duration-200">
           <Bell size={18} />
           <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>

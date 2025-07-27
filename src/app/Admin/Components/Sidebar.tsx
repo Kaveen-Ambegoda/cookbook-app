@@ -6,12 +6,12 @@ import NavItem from './NavItem';
 import Image from 'next/image';
 
 const navItems = [
-  { label: 'Dashboard', href: '/Layouts/dashboard', icon: <Home size={20} /> },
-  { label: 'User Management', href: '/Layouts/users', icon: <Users size={20} /> },
-  { label: 'Recipes', href: '/Layouts/recipes', icon: <BookOpen size={20} /> },
-  { label: 'Events', href: '/Layouts/event', icon: <Cookie size={20} /> },
-  { label: 'Host Management', href: '/Layouts/hosts', icon: <ChefHat size={20} /> },
-  { label: 'Notifications', href: '/Layouts/notifications', icon: <Bell size={20} /> },
+  { label: 'Dashboard', href: 'Admin/Layouts/dashboard', icon: <Home size={20} /> },
+  { label: 'User Management', href: 'Admin/Layouts/users', icon: <Users size={20} /> },
+  { label: 'Recipes', href: 'Admin/Layouts/recipes', icon: <BookOpen size={20} /> },
+  { label: 'Events', href: 'Admin/Layouts/event', icon: <Cookie size={20} /> },
+  { label: 'Host Management', href: 'Admin/Layouts/hosts', icon: <ChefHat size={20} /> },
+  { label: 'Notifications', href: 'Admin/Layouts/notifications', icon: <Bell size={20} /> },
 ];
 
 export default function Sidebar({ isOpen, closeSidebar }: { isOpen: boolean, closeSidebar: () => void }) {
