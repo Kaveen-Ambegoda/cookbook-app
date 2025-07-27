@@ -454,12 +454,12 @@ export default function VoteAndRateChallenge() {
                     Voting closes in 3 days. Make sure to rate all recipes!
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg hover:shadow-xl">
+                    <button 
+                      onClick={() => router.push(`/RecipeChallenge/JoinChallengePage/${challengeId}/leaderBoard`)}
+                      className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
                       View Results
-                    </button>
-                    <button className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-all duration-200">
-                      Share Challenge
-                    </button>
+                    </button> 
                   </div>
                 </div>
               </div>

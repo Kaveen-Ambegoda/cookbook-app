@@ -6,17 +6,18 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import axios from 'axios';
 
-interface LeaderboardEntry {
+export interface LeaderboardEntry {
   id: string;
   name: string;
   recipeName: string;
-  recipeImage: string | null;
+  recipeImage: string;
   recipeDescription: string;
   score: number;
-  rank: number;
   votes: number;
   rating: number;
+  totalRatings: number;
   challengeCategory: string;
+  rank: number;
 }
 
 const LeaderboardPage = () => {
@@ -30,144 +31,11 @@ const LeaderboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Show 5 items per page
 
-  // Mock data for now - replace with actual API call
-  const mockLeaderboardData = [
-    { 
-      id: "1", 
-      name: "John Doe", 
-      recipeName: "Spicy Thai Curry", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "A delicious and authentic Thai curry with the perfect balance of spices and coconut milk.",
-      score: 95, 
-      rank: 1, 
-      votes: 45, 
-      rating: 4.8,
-      challengeCategory: "Asian Cuisine"
-    },
-    { 
-      id: "2", 
-      name: "Jane Smith", 
-      recipeName: "Classic Italian Carbonara", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Traditional Roman pasta dish with eggs, cheese, pancetta, and black pepper.",
-      score: 90, 
-      rank: 2, 
-      votes: 42, 
-      rating: 4.7,
-      challengeCategory: "Italian"
-    },
-    { 
-      id: "3", 
-      name: "Alice Johnson", 
-      recipeName: "Chocolate Lava Cake", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Decadent chocolate cake with a molten chocolate center, served warm.",
-      score: 85, 
-      rank: 3, 
-      votes: 38, 
-      rating: 4.5,
-      challengeCategory: "Dessert"
-    },
-    { 
-      id: "4", 
-      name: "Bob Brown", 
-      recipeName: "Mediterranean Quinoa Bowl", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Healthy and colorful quinoa bowl with fresh vegetables and Mediterranean flavors.",
-      score: 80, 
-      rank: 4, 
-      votes: 35, 
-      rating: 4.3,
-      challengeCategory: "Healthy"
-    },
-    { 
-      id: "5", 
-      name: "Emma Wilson", 
-      recipeName: "Korean BBQ Tacos", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Fusion tacos combining Korean BBQ flavors with Mexican street food traditions.",
-      score: 75, 
-      rank: 5, 
-      votes: 32, 
-      rating: 4.2,
-      challengeCategory: "Fusion"
-    },
-    { 
-      id: "6", 
-      name: "Mike Davis", 
-      recipeName: "Mushroom Risotto", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Creamy Italian risotto with wild mushrooms and parmesan cheese.",
-      score: 70, 
-      rank: 6, 
-      votes: 30, 
-      rating: 4.1,
-      challengeCategory: "Italian"
-    },
-    { 
-      id: "7", 
-      name: "Sarah Chen", 
-      recipeName: "Banana Bread Pudding", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Warm and comforting bread pudding made with fresh bananas.",
-      score: 65, 
-      rank: 7, 
-      votes: 28, 
-      rating: 4.0,
-      challengeCategory: "Dessert"
-    },
-    { 
-      id: "8", 
-      name: "Tom Wilson", 
-      recipeName: "Greek Salad Bowl", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Fresh Mediterranean salad with feta cheese and olives.",
-      score: 60, 
-      rank: 8, 
-      votes: 25, 
-      rating: 3.9,
-      challengeCategory: "Healthy"
-    },
-    { 
-      id: "9", 
-      name: "Lisa Park", 
-      recipeName: "Chicken Teriyaki", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Japanese-style grilled chicken with teriyaki glaze.",
-      score: 55, 
-      rank: 9, 
-      votes: 22, 
-      rating: 3.8,
-      challengeCategory: "Asian Cuisine"
-    },
-    { 
-      id: "10", 
-      name: "David Kim", 
-      recipeName: "Beef Stir Fry", 
-      recipeImage: "/default.jpg",
-      recipeDescription: "Quick and flavorful beef stir fry with vegetables.",
-      score: 50, 
-      rank: 10, 
-      votes: 20, 
-      rating: 3.7,
-      challengeCategory: "Asian Cuisine"
-    },
-  ];
-
   // Pagination calculations
   const totalPages = Math.ceil(leaderboardData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentItems = leaderboardData.slice(startIndex, endIndex);
-
-  useEffect(() => {
-    // Simulate loading
-    setLoading(true);
-    setTimeout(() => {
-      setLeaderboardData(mockLeaderboardData);
-      setLoading(false);
-    }, 1000);
-  }, []);
 
   useEffect(() => {
     async function fetchChallengeDetails() {
@@ -183,6 +51,22 @@ const LeaderboardPage = () => {
     if (challengeId) fetchChallengeDetails();
   }, [challengeId]);
 
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setLoading(true);
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}/leaderboard`
+        );
+        setLeaderboardData(response.data);
+      } catch (err) {
+        setLeaderboardData([]);
+      }
+      setLoading(false);
+    }
+    if (challengeId) fetchLeaderboard();
+  }, [challengeId]);
+
   const getRankBadge = (rank: number) => {
     if (rank === 1) return "1";
     if (rank === 2) return "2";
@@ -195,13 +79,6 @@ const LeaderboardPage = () => {
     if (rank === 2) return "bg-gradient-to-r from-gray-400 to-gray-600 text-white";
     if (rank === 3) return "bg-gradient-to-r from-orange-400 to-orange-600 text-white";
     return "bg-gradient-to-r from-blue-400 to-blue-600 text-white";
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-green-600 font-bold";
-    if (score >= 80) return "text-blue-600 font-semibold";
-    if (score >= 70) return "text-orange-600 font-medium";
-    return "text-gray-600";
   };
 
   const renderStars = (rating: number) => {
@@ -358,12 +235,10 @@ const LeaderboardPage = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {currentItems.map((entry, index) => (
-                        <tr key={entry.id} className={`hover:bg-gray-50 transition-colors ${
-                          entry.rank <= 3 ? 'bg-orange-25' : ''
-                        }`}>
+                        <tr key={entry.id} className={`hover:bg-gray-50 transition-colors ${entry.rank <= 3 ? 'bg-orange-25' : ''}`}>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold ${getRankStyle(entry.rank)}`}>
-                              {entry.rank <= 3 ? getRankBadge(entry.rank) : entry.rank}
+                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold ${getRankStyle(entry.rank ?? index + 1)}`}>
+                              {getRankBadge(entry.rank ?? index + 1)}
                             </span>
                           </td>
                           <td className="px-6 py-4">
@@ -383,6 +258,7 @@ const LeaderboardPage = () => {
                                   <FaUtensils className="mr-1" />
                                   {entry.challengeCategory}
                                 </div>
+                                
                               </div>
                             </div>
                           </td>
@@ -390,16 +266,22 @@ const LeaderboardPage = () => {
                             <div className="text-sm font-medium text-gray-900">{entry.name}</div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center space-x-1">
+                            <div>
+                              <div className="flex items-center space-x-1">
                               {renderStars(entry.rating)}
                               <span className="text-sm text-gray-600 ml-1">({entry.rating})</span>
                             </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                  {entry.totalRatings} {entry.totalRatings === 1 ? 'rating' : 'ratings'}
+                              </div>
+                            </div>
+                            
                           </td>
                           <td className="px-6 py-4">
                             <span className="text-sm text-gray-900">{entry.votes}</span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`text-lg font-semibold ${getScoreColor(entry.score)}`}>
+                            <span className="text-lg font-semibold">
                               {entry.score}
                             </span>
                             <span className="text-sm text-gray-500 ml-1">/100</span>
@@ -416,7 +298,7 @@ const LeaderboardPage = () => {
                     <div key={entry.id} className="p-4">
                       <div className="flex items-center space-x-3 mb-3">
                         <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold ${getRankStyle(entry.rank)}`}>
-                          {entry.rank <= 3 ? getRankBadge(entry.rank) : entry.rank}
+                          {getRankBadge(entry.rank)}
                         </span>
                         <div className="h-12 w-12 relative rounded-lg overflow-hidden">
                           <Image
@@ -432,7 +314,7 @@ const LeaderboardPage = () => {
                           <div className="text-xs text-gray-500">{entry.name}</div>
                         </div>
                         <div className="text-right">
-                          <span className={`text-lg font-semibold ${getScoreColor(entry.score)}`}>
+                          <span className="text-lg font-semibold">
                             {entry.score}
                           </span>
                           <div className="text-xs text-gray-500">/100</div>
@@ -475,10 +357,7 @@ const LeaderboardPage = () => {
                       className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg hover:shadow-xl"
                     >
                       View All Recipes
-                    </button>
-                    <button className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-all duration-200">
-                      Share Results
-                    </button>
+                    </button>   
                   </div>
                 </div>
               </div>

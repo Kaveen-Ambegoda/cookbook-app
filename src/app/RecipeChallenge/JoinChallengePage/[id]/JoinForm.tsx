@@ -346,7 +346,7 @@ const username = user?.username ?? "";
 
         // Small delay to show toast before navigation
         setTimeout(() => {
-          router.push(`/RecipeChallenge/JoinChallengePage/${challenge?.id}/resultPage`);
+          router.push(`/RecipeChallenge/JoinChallengePage/${challenge?.id}/VoteAndRateChallenge`);
         }, 1000);
       }
     } catch (err) {
