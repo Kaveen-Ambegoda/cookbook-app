@@ -57,8 +57,8 @@ export default function VoteAndRateChallenge() {
             recipeImage: recipe.recipeImage,
             challengeCategory: recipe.challengeCategory,
             votes: recipe.votes,
-            rating: recipe.averageRating ?? 0, // <-- use averageRating
-            totalRatings: recipe.totalRatings, // <-- use totalRatings
+            rating: recipe.averageRating ?? recipe.rating ?? 0, // <-- always use averageRating first
+            totalRatings: recipe.totalRatings ?? 0,
           }));
           setRecipes(mapped);
         } else {
@@ -307,7 +307,7 @@ export default function VoteAndRateChallenge() {
             <>
               {/* Stats Bar */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                   <div className="bg-blue-50 rounded-lg p-3">
                     <div className="text-2xl font-bold text-blue-600">{recipes.length}</div>
                     <div className="text-sm text-gray-600">Total Recipes</div>
@@ -317,6 +317,12 @@ export default function VoteAndRateChallenge() {
                       {recipes.reduce((sum, recipe) => sum + recipe.votes, 0)}
                     </div>
                     <div className="text-sm text-gray-600">Total Votes</div>
+                  </div>
+                  <div className="bg-red-50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-red-600">
+                      {recipes.reduce((sum, recipe) => sum + (recipe.totalRatings ?? 0), 0)}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Rates</div>
                   </div>
                 </div>
               </div>
