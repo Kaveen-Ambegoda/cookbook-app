@@ -25,8 +25,8 @@ type RecipeProps = {
     favorites?: number;
     reviews?: number;
   };
-  isFavorite?: boolean; // passed from Favorites page (optional)
-  onFavoriteChange?: () => void; // callback to re-fetch favorites (optional)
+  isFavorite?: boolean;
+  onFavoriteChange?: () => void;
 };
 
 const HomeRecipeCard: React.FC<RecipeProps> = ({
@@ -36,15 +36,13 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
 }) => {
   const hookIsFavorited = useIsFavorited(recipe.id);
   const reviewCount = useReviewCount(recipe.id);
-  const router = useRouter()
+  const router = useRouter();
 
-  // Prefer the prop if passed, else fall back to hook
   const initialIsFavorited =
     typeof isFavorite === "boolean" ? isFavorite : hookIsFavorited;
 
   const [favorited, setFavorited] = useState<boolean>(initialIsFavorited);
 
-  // Sync external favorite state with local state
   useEffect(() => {
     setFavorited(initialIsFavorited);
   }, [initialIsFavorited]);
@@ -53,7 +51,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Please log in to favorite this recipe.");
-      router.push("/Login_Register/Login"); 
+      router.push("/Login_Register/Login");
       return;
     }
 
@@ -66,15 +64,15 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(recipe.id), // send plain number
+          body: JSON.stringify(recipe.id),
         }
       );
 
       if (response.ok) {
         const data = await response.json();
-        setFavorited(data.isFavorited); // toggle UI state
+        setFavorited(data.isFavorited);
         toast.success(data.message);
-        if (onFavoriteChange) onFavoriteChange(); // refresh parent if needed
+        if (onFavoriteChange) onFavoriteChange();
       } else {
         const errorText = await response.text();
         toast.error(errorText || "Failed to update favorite.");
@@ -86,20 +84,20 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
   };
 
   return (
-    <div className="bg-white p-5 rounded-lg shadow-lg transition transform hover:scale-105 w-full max-w-sm mx-auto">
+    <div className="flex flex-col justify-between bg-white p-5 rounded-lg shadow-lg transition transform hover:scale-105 w-full max-w-sm mx-auto min-h-[480px]">
       {/* Image */}
       <div className="flex justify-center">
         <Image
           src={recipe.image || "/images/default.jpg"}
           width={300}
-          height={400}
+          height={200}
           alt={recipe.title}
           className="rounded-lg object-cover"
         />
       </div>
 
       {/* Title */}
-      <h3 className="mt-3 text-lg font-semibold text-center text-gray-800">
+      <h3 className="mt-3 text-lg font-semibold text-center text-gray-800 line-clamp-2 h-12">
         {recipe.title}
       </h3>
 
@@ -116,8 +114,7 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap justify-between items-center bg-gray-100 p-2 rounded-lg mt-5 space-x-1 w-full max-w-xs mx-auto">
-        {/* Favorite */}
+      <div className="flex justify-between items-center bg-gray-100 p-2 rounded-lg mt-5 w-full max-w-xs mx-auto">
         <button
           onClick={handleFavorite}
           className="flex items-center space-x-1 group"
@@ -132,7 +129,6 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
           />
         </button>
 
-        {/* Reviews */}
         <Link
           href={`/RecipeManagement/Review/${recipe.id}`}
           className="flex items-center space-x-1 hover:scale-105 transition"
@@ -143,14 +139,13 @@ const HomeRecipeCard: React.FC<RecipeProps> = ({
           </span>
         </Link>
 
-        {/* Share */}
         <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition">
           <FaShareAlt className="text-lg" />
           <span className="font-medium">Share</span>
         </button>
       </div>
 
-      {/* View Recipe Button */}
+      {/* View Button */}
       <div className="mt-5 text-center">
         <Link
           href={`/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`}

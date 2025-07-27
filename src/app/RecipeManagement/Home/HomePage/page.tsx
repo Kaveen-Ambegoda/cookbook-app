@@ -21,8 +21,8 @@ interface Recipe {
 const HomePage = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
 
-  // Initial empty filters
   const [filters, setFilters] = useState<RecipeFilters>({
     searchTerm: "",
     mealType: [],
@@ -43,21 +43,26 @@ const HomePage = () => {
   const [occasionOptions, setOccasionOptions] = useState<string[]>([]);
   const [skillLevelOptions, setSkillLevelOptions] = useState<string[]>([]);
 
-  useEffect(() => {
-  const fetchFilterOptions = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/filter-options`);
-      const data = response.data;
+  const [currentPage, setCurrentPage] = useState(1);
+  const recipesPerPage = 4;
 
-      setMealTypeOptions(data.mealTypes || []);
-      setCuisineOptions(data.cuisines || []);
-      setDietOptions(data.diets || []);
-      setOccasionOptions(data.occasions || []);
-      setSkillLevelOptions(data.skillLevels || []);
-    } catch (error) {
-      console.error("Error fetching filter options:", error);
-    }
-  };
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/filter-options`
+        );
+        const data = response.data;
+
+        setMealTypeOptions(data.mealTypes || []);
+        setCuisineOptions(data.cuisines || []);
+        setDietOptions(data.diets || []);
+        setOccasionOptions(data.occasions || []);
+        setSkillLevelOptions(data.skillLevels || []);
+      } catch (error) {
+        console.error("Error fetching filter options:", error);
+      }
+    };
 
     fetchFilterOptions();
   }, []);
@@ -80,13 +85,11 @@ const HomePage = () => {
         if (filters.fatMin) queryParams.append("fatMin", filters.fatMin.toString());
         if (filters.carbsMin) queryParams.append("carbsMin", filters.carbsMin.toString());
 
-        const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/homePage?${
-          queryParams.toString()
-        }`;
-
+        const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Recipe/homePage?${queryParams.toString()}`;
         const response = await axios.get(url);
           
         setRecipes(response.data);
+        setCurrentPage(1);
       } catch (error) {
         console.error("Error fetching recipes:", error);
       }
@@ -95,18 +98,40 @@ const HomePage = () => {
     fetchRecipes();
   }, [filters]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
+
+  const indexOfLastRecipe = currentPage * recipesPerPage;
+  const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
+  const currentRecipes = recipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+  const totalPages = Math.ceil(recipes.length / recipesPerPage);
+
   return (
     <div>
-      {/* Pass handler to open filter sheet */}
-      <HomeNavBar onFilterClick={() => setIsFilterOpen(true)} />
-      <Welcome />
+      <HomeNavBar
+        onFilterClick={() => setIsFilterOpen(true)}
+        mealTypeOptions={mealTypeOptions}
+        selectedMealType={selectedMealType}
+        onMealTypeClick={(mealType) => {
+          setSelectedMealType(mealType);
+          setFilters((prev) => ({
+            ...prev,
+            mealType: mealType ? [mealType] : [],
+          }));
+        }}
+      />
 
-      {/* Filter Sheet */}
+      {!selectedMealType && <Welcome />}
+
       <FilterSheet
         isOpen={isFilterOpen}
         onOpenChange={setIsFilterOpen}
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={(newFilters) => {
+          setFilters(newFilters);
+          setSelectedMealType(null); // Clear nav selection if filters are used
+        }}
         mealTypeOptions={mealTypeOptions}
         cuisineOptions={cuisineOptions}
         dietOptions={dietOptions}
@@ -114,9 +139,11 @@ const HomePage = () => {
         skillLevelOptions={skillLevelOptions}
       />
 
-      <h1 className="text-green-700 text-2xl font-medium pl-4 pb-2">All Recipes</h1>
+      <h1 className="text-green-700 text-2xl font-medium pl-4 pb-2">
+        {selectedMealType ? selectedMealType : "All Recipes"}
+      </h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-8 p-4">
-        {recipes.map((recipe) => {
+        {currentRecipes.map((recipe) => {
           const image = recipe.image?.startsWith("http")
             ? recipe.image
             : "/image/default.jpg";
@@ -137,6 +164,24 @@ const HomePage = () => {
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-6">
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index + 1}
+              onClick={() => setCurrentPage(index + 1)}
+              className={`px-4 py-2 rounded-md transition ${
+                currentPage === index + 1
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
       <Footer />
     </div>

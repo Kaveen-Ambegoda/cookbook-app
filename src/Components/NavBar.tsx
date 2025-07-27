@@ -6,7 +6,7 @@ import { inter } from '@/app/utils/fonts';
 import Image from 'next/image';
 import SearchBar from './SearchBar';
 import { useState} from 'react';
-
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/app/context/authContext';
 
@@ -86,9 +86,22 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
       <div className="flex items-center space-x-4">
         <SearchBar />
-        <button className="text-gray-800 text-xl">
+
+        <button
+          className="text-gray-800 text-xl"
+          onClick={() => {
+            if (isAuthenticated) {
+              router.push("/NotificationPage");
+            } else {
+              toast.error("To see notifications, please sign in.");
+              setTimeout(() => {
+                router.push("/Login_Register/Login");
+              }, 1000); 
+            }
+          }}
+        >
           <FaBell />
-        </button>
+        </button>    
 
         <div className="relative">
           <button className="text-gray-800 text-xl cursor-pointer" onClick={toggleDropdown}>
