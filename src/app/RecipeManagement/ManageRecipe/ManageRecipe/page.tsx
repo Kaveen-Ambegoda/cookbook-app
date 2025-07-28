@@ -17,7 +17,7 @@ interface RecipeType {
   createdAt?: string;
 }
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 7;
 
 export default function ManageRecipes() {
   const router = useRouter();

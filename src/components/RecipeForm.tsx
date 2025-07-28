@@ -474,7 +474,6 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                     <CategorySelect name="diet" label="Diet / Lifestyle" options={dietOptions} />
                     <CategorySelect name="occasion" label="Occasion" options={occasionOptions} />
                     <CategorySelect name="skillLevel" label="Skill Level" options={skillLevelOptions} />
-
                     <CategorySelect name="cookingTime" label="Cooking Time" options={cookingTimeOptions} required />
 
                     <div>
