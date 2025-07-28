@@ -7,13 +7,14 @@ import { roboto } from '@/utils/fonts';
 import { abeezee } from '@/utils/fonts';
 import { useAuth } from '@/app/context/authContext';
 
-import { FcGoogle } from "react-icons/fc";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
+import FacebookLoginButton from "@/components/FacebookLoginButton";
 import { FaFacebookF, FaApple } from 'react-icons/fa';
 
 import toast, { Toaster } from "react-hot-toast"; // ✅ Added toast
 
 // Backend API base URL (easily switch between HTTP & HTTPS here)
-const API_BASE_URL = "https://localhost:7205"; 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL; 
 
 export default function LoginPage() {
   // State hooks to store the form data
@@ -113,12 +114,8 @@ export default function LoginPage() {
 
           {/* Social Login Icons */}
           <div className="mt-4 flex justify-center gap-5">
-            <button type="button" aria-label="Continue with Google" className="p-2 px-9 rounded-full bg-white shadow">
-              <FcGoogle className="w-4 h-4" />
-            </button>
-            <button type="button" aria-label="Continue with Facebook" className="p-2 px-9 rounded-full bg-white shadow">
-              <FaFacebookF className="w-4 h-4 text-[#1877F2]" />
-            </button>
+            <GoogleLoginButton />
+            <FacebookLoginButton />
             <button type="button" aria-label="Continue with Apple" className="p-2 px-9 rounded-full bg-white shadow">
               <FaApple className="w-4 h-4" />
             </button>

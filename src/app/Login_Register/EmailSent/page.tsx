@@ -1,8 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+
 import { FaCheckCircle } from 'react-icons/fa';
 import { roboto } from '@/utils/fonts';
+
 
 export default function EmailSentPage() {
   const searchParams = useSearchParams();
@@ -10,7 +12,7 @@ export default function EmailSentPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-white">
-      <FaCheckCircle className="text-green-500 text-6xl mb-4" />
+      <FaEnvelope className="text-green-500 text-6xl mb-4" />
       <h1 className={`text-3xl font-bold text-gray-800 mb-2 ${roboto.className}`}>Verify Your Email</h1>
       <p className="text-md text-gray-700 text-center max-w-md">
         We've sent a verification link to <strong>{email}</strong>. <br />

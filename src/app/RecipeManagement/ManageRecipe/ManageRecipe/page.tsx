@@ -17,6 +17,8 @@ interface RecipeType {
   createdAt?: string;
 }
 
+const ITEMS_PER_PAGE = 5;
+
 export default function ManageRecipes() {
   const router = useRouter();
 
@@ -26,6 +28,8 @@ export default function ManageRecipes() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<RecipeType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchRecipes();
@@ -57,6 +61,12 @@ export default function ManageRecipes() {
       setIsLoading(false);
     }
   };
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentRecipes = recipes.slice(startIndex, endIndex);
+
+  const totalPages = Math.ceil(recipes.length / ITEMS_PER_PAGE);
 
   const handleViewClick = (recipe: RecipeType) => {
     router.push(`/RecipeManagement/ManageRecipe/ViewRecipe/${recipe.id}`);
@@ -93,6 +103,10 @@ export default function ManageRecipes() {
       toast.success(`"${recipeToDelete.title}" deleted successfully!`);
       setShowConfirm(false);
       setRecipeToDelete(null);
+
+      if ((recipes.length - 1) <= (currentPage - 1) * ITEMS_PER_PAGE && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     } catch (error) {
       console.error("Failed to delete recipe:", error);
       toast.error("Failed to delete recipe. Please try again.");
@@ -106,8 +120,29 @@ export default function ManageRecipes() {
     setShowConfirm(false);
   };
 
+  const Pagination = () => {
+    if (totalPages <= 1) return null;
+
+    const buttons = [];
+    for (let i = 1; i <= totalPages; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => setCurrentPage(i)}
+          className={`px-3 py-1 rounded-md mx-1 ${
+            i === currentPage ? "bg-green-600 text-white" : "bg-gray-200"
+          }`}
+          aria-current={i === currentPage ? "page" : undefined}
+        >
+          {i}
+        </button>
+      );
+    }
+    return <div className="flex justify-center mb-6">{buttons}</div>;
+  };
+
   return (
-    <div className=" pt-16 p-8">
+    <div className="pt-16 p-8">
       <main className="flex-grow max-w-7xl mx-auto">
         <h2 className="text-3xl font-bold text-green-800 mb-8 mt-6">Manage Your Recipes</h2>
 
@@ -121,19 +156,22 @@ export default function ManageRecipes() {
 
         {!isLoading && !error && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-8 mb-10 w-full">
-              <Link href="/RecipeManagement/ManageRecipe/CreateRecipeForm" className="group">
-                <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 hover:bg-green-50 transition cursor-pointer flex flex-col justify-center items-center min-h-[280px]">
-                  <div className="rounded-full w-20 h-20 bg-green-100 flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-                    <span className="text-green-600 text-4xl font-bold">+</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-700 group-hover:text-green-700">Add New Recipe</h3>
-                  <p className="text-sm text-gray-500 mt-2">Share your culinary creation</p>
-                </div>
-              </Link>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-8 mb-4 w-full">
 
-              {recipes.length > 0 ? (
-                recipes.map((recipe) => (
+              {currentPage === 1 && (
+                <Link href="/RecipeManagement/ManageRecipe/CreateRecipeForm" className="group">
+                  <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 hover:bg-green-50 transition cursor-pointer flex flex-col justify-center items-center min-h-[280px]">
+                    <div className="rounded-full w-20 h-20 bg-green-100 flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+                      <span className="text-green-600 text-4xl font-bold">+</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700 group-hover:text-green-700">Add New Recipe</h3>
+                    <p className="text-sm text-gray-500 mt-2">Share your culinary creation</p>
+                  </div>
+                </Link>
+              )}
+
+              {currentRecipes.length > 0 ? (
+                currentRecipes.map((recipe) => (
                   <RecipeCard
                     key={recipe.id}
                     recipe={recipe}
@@ -148,11 +186,12 @@ export default function ManageRecipes() {
                 </p>
               )}
             </div>
+
+            <Pagination />
           </>
         )}
       </main>
 
-      {/* Delete Confirmation Modal */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">

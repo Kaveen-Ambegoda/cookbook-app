@@ -12,11 +12,17 @@ interface Recipe {
   image: string;
   cookingTime: number;
   portion: number;
+  mealType?: string;
+  cuisine?: string;
+  diet?: string;
+  occasion?: string;
+  skillLevel?: string;
   ingredients?: string | string[];
   instructions?: string | string[];
   calories?: number;
   protein?: number;
-  carbohydrates?: number;
+  fat?: number;
+  carbs?: number;
 }
 
 const ViewRecipe: React.FC = () => {
@@ -99,7 +105,20 @@ const ViewRecipe: React.FC = () => {
               <ul className="text-sm text-gray-700 space-y-1">
                 <li><strong>Total Time:</strong> {recipe.cookingTime} minutes</li>
                 <li><strong>Portion Size:</strong> {recipe.portion} servings</li>
-                <li><strong>Category:</strong> Main course</li>
+                <li><strong>Meal Type: </strong>{recipe.mealType}</li>
+                {recipe.cuisine && (
+                  <li><strong>Cuisine: </strong>{recipe.cuisine}</li>
+                )}
+                {recipe.diet && (
+                  <li><strong>Diet: </strong>{recipe.diet}</li>
+                )}
+                {recipe.occasion && (
+                  <li><strong>Occasion: </strong>{recipe.occasion}</li>
+                )}
+                {recipe.skillLevel && (
+                  <li><strong>Skill Level: </strong>{recipe.skillLevel}</li>
+                )}
+
               </ul>
             </div>
 
@@ -108,7 +127,8 @@ const ViewRecipe: React.FC = () => {
               <ul className="text-sm text-gray-700 space-y-1">
                 <li><strong>Calories:</strong> {recipe.calories ?? 0}</li>
                 <li><strong>Protein:</strong> {recipe.protein ?? 0}g</li>
-                <li><strong>Carbohydrates:</strong> {recipe.carbohydrates ?? 0}g</li>
+                <li><strong>Fat:</strong> {recipe.fat ?? 0}g</li>
+                <li><strong>Carbohydrates:</strong> {recipe.carbs ?? 0}g</li>
               </ul>
             </div>
           </div>
