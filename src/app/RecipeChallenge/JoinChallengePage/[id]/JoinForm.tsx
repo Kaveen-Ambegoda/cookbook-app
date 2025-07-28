@@ -39,12 +39,11 @@ interface JoinFormProps {
 
 const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
   const router = useRouter();
-  const { username } = useAuth(); // get username from context
+  const { user } = useAuth();
+const username = user?.username ?? "";
 
   // Mock function: Replace with your actual user fetching logic
-  const getCurrentUser = () => ({
-    name: username 
-  });
+  
 
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -321,7 +320,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
       // Submit to backend
       const token = localStorage.getItem('token'); // Or use your actual storage key
 
-      const response = await axios.post('https://localhost:7205/api/submission', submitFormData, {
+      const response = await axios.post('https://localhost:7205/api/Submission', submitFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`,
@@ -347,7 +346,7 @@ const JoinForm: React.FC<JoinFormProps> = ({ challenge }) => {
 
         // Small delay to show toast before navigation
         setTimeout(() => {
-          router.push(`/RecipeChallenge/JoinChallengePage/${challenge?.id}/resultPage`);
+          router.push(`/RecipeChallenge/JoinChallengePage/${challenge?.id}/VoteAndRateChallenge`);
         }, 1000);
       }
     } catch (err) {

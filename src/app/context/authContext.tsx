@@ -11,11 +11,16 @@ interface JwtPayload {
   [key: string]: any;
 }
 
-interface AuthContextType {
-  isAuthenticated: boolean;
+interface UserType {
+  email: string | null;
   username: string | null;
   userId: string | null;
   role: string | null;
+}
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: UserType | null;
   token: string | null;            
   refreshToken: string | null;
   login: (token: string, refreshToken: string) => void;
@@ -26,9 +31,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [username, setUsername] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const [user, setUser] = useState<UserType | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState<string | null>(null);           
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
@@ -37,13 +40,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const decoded = jwtDecode<JwtPayload>(jwt);
 
-      const NAME_CLAIM = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
-      const ID_CLAIM = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier";
-      const ROLE_CLAIM = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+      // Try these common claims for email
+      const EMAIL_CLAIM = decoded.email || decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || decoded.sub || null;
 
-      setUsername(decoded[NAME_CLAIM] || null);
-      setUserId(decoded[ID_CLAIM] || null);
-      setRole(decoded[ROLE_CLAIM] || null);
+      setUser({
+        email: EMAIL_CLAIM,
+        username: decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || null,
+        userId: decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || null,
+        role: decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || null,
+      });
       setIsAuthenticated(true);
     } catch {
       logout();
@@ -76,9 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     setRefreshToken(null);
     setIsAuthenticated(false);
-    setUsername(null);
-    setUserId(null);
-    setRole(null);
+    setUser(null);
   };
 
   const updateToken = (newToken: string) => {
@@ -95,9 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider
       value={{
         isAuthenticated,
-        username,
-        userId,
-        role,
+        user,
         token,
         refreshToken,
         login,

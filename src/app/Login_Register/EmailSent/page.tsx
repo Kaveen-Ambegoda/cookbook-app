@@ -1,8 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { FaEnvelope } from 'react-icons/fa';
-import { roboto } from '@/app/utils/fonts';
+
+import { FaCheckCircle } from 'react-icons/fa';
+import { roboto } from '@/utils/fonts';
+
 
 export default function EmailSentPage() {
   const searchParams = useSearchParams();

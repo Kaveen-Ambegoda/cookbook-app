@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation"; 
-import { adlam } from '@/app/utils/fonts';
-import { roboto } from '@/app/utils/fonts';
-import { abeezee } from '@/app/utils/fonts';
+import { adlam } from '@/utils/fonts';
+import { roboto } from '@/utils/fonts';
+import { abeezee } from '@/utils/fonts';
 import { useAuth } from '@/app/context/authContext';
 
 import GoogleLoginButton from "@/components/GoogleLoginButton";
