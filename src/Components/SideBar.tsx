@@ -2,15 +2,14 @@
 
 import React from "react";
 import toast from "react-hot-toast";
-
 import {
   FaHome,
   FaUtensils,
   FaClipboardList,
   FaHeart,
-  FaCog,
   FaSignOutAlt,
   FaTrophy,
+  FaBell, // Replaced FaCog with FaBell for Notifications
 } from "react-icons/fa";
 import Link from "next/link";
 import { useAuth } from "@/app/context/authContext";
@@ -38,9 +37,9 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
       route: "/RecipeManagement/FavoritePage",
     },
     { icon: FaClipboardList, label: "Recipe Forum", route: "/Forum" },
-    
     { icon: FaTrophy, label: "Recipe Challenge", route: "/RecipeChallenge" },
-    { icon: FaCog, label: "Settings", route: "/Settings" },
+    // ✅ Notifications replaces Settings
+    { icon: FaBell, label: "Notifications", route: "/NotificationPage" },
   ];
 
   const logoutItem = isAuthenticated
@@ -58,8 +57,10 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
         "Recipe Forum",
         "Favorites",
         "Recipe Challenge",
+        "Notifications",
       ].includes(item.label)
     ) {
+      toast.error("Please login to access this feature.");
       router.push("/Login_Register/Login");
       return;
     }
@@ -125,37 +126,36 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
 
       {/* Logout at Bottom */}
       {logoutItem && (
-  <div className="flex flex-col items-center mb-8">
-    <Link
-      href={logoutItem.route}
-      onClick={(e) => {
-        e.preventDefault();
-        handleClick(logoutItem);
-      }}
-      className="group relative flex items-center justify-center w-full py-3 cursor-pointer"
-    >
-      {/* Logout Icon with hover color change */}
-      {React.createElement(logoutItem.icon, {
-        className: `mb-24 text-2xl transition-colors duration-200
-          text-white group-hover:text-red-500`,
-      })}
+        <div className="flex flex-col items-center mb-8">
+          <Link
+            href={logoutItem.route}
+            onClick={(e) => {
+              e.preventDefault();
+              handleClick(logoutItem);
+            }}
+            className="group relative flex items-center justify-center w-full py-3 cursor-pointer"
+          >
+            {/* Logout Icon with hover color change */}
+            {React.createElement(logoutItem.icon, {
+              className: `mb-24 text-2xl transition-colors duration-200
+                text-white group-hover:text-red-500`,
+            })}
 
-      {/* Tooltip (popup) on hover */}
-      <span
-        className="
-          absolute top-full left-1/2 transform -translate-x-1/2
-          mt-2 px-2 py-1 text-white text-xs rounded-md
-          opacity-0 group-hover:opacity-100 group-hover:translate-y-1
-          transition-all duration-200 ease-out shadow-lg
-          pointer-events-none z-10
-        "
-      >
-        {logoutItem.label}
-      </span>
-    </Link>
-  </div>
-)}
-
+            {/* Tooltip (popup) on hover */}
+            <span
+              className="
+                absolute top-full left-1/2 transform -translate-x-1/2
+                mt-2 px-2 py-1 text-white text-xs rounded-md
+                opacity-0 group-hover:opacity-100 group-hover:translate-y-1
+                transition-all duration-200 ease-out shadow-lg
+                pointer-events-none z-10
+              "
+            >
+              {logoutItem.label}
+            </span>
+          </Link>
+        </div>
+      )}
     </div>
   );
 };

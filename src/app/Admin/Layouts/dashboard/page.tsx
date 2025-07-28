@@ -1,179 +1,295 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Users, BookOpen, DollarSign, ChefHat, AlertTriangle, Crown,
-  TrendingUp, TrendingDown, Activity, Calendar, Eye, MessageSquare,
-  Heart, Video, Image, Flag, Ban, CheckCircle, Clock, Zap,
-  Globe, UserCheck, UserX, Star, Award, Play, Pause,
-  BarChart3, PieChart, LineChart, Settings, Bell, Search,
-  Filter, Download, RefreshCw, Plus, ArrowUp, ArrowDown,
-  Shield, Target, Layers, Database, Server, Wifi
+  Users, BookOpen, UserPlus, TrendingUp, Crown, Heart,
+  RefreshCw, Calendar, ArrowRight, Star, Eye, ChevronRight,
+  Activity, Zap, Award
 } from 'lucide-react';
-import * as dashboardData from '@/app/Admin/Layouts/Data/dashboardMockData';
+import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 
-interface Stat {
-  id: string;
-  label: string;
-  value: number;
-  change: number;
-  trend: 'up' | 'down' | 'stable';
-  icon: React.ComponentType<{ size?: number }>;
-  colorClass: string;
-  bgGradient: string;
+// Interfaces
+interface DashboardStats {
+  totalUsers: number;
+  totalRecipes: number;
+  newUsersToday: number;
+  newRecipesToday: number;
 }
 
-interface ActivityItem {
+interface NewUser {
   id: number;
-  type: 'user' | 'recipe' | 'host' | 'report' | 'live' | 'subscription';
-  action: string;
-  user: string;
-  target?: string;
-  time: string;
-  severity: 'low' | 'medium' | 'high';
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture?: string;
+  createdAt: string;
+  status: string;
 }
 
-interface PopularContent {
+interface NewRecipe {
   id: number;
   title: string;
-  creator: string;
-  type: 'recipe' | 'video' | 'live';
-  metrics: {
-    views: number;
-    likes: number;
-    comments: number;
-    rating?: number;
-  };
-  status: 'active' | 'flagged' | 'trending';
-  thumbnail?: string;
+  category: string;
+  cookingTime: number;
+  portion: number;
+  image?: string;
+  userName: string;
+  createdAt: string;
+  likesCount: number;
 }
 
-interface SystemMetrics {
-  serverLoad: number;
-  memoryUsage: number;
-  activeConnections: number;
-  responseTime: number;
-  uptime: string;
+interface TopUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profilePicture?: string;
+  totalLikes: number;
+  totalRecipes: number;
+  engagementScore: number;
+  rank: number;
+}
+
+interface TopRecipe {
+  id: number;
+  title: string;
+  category: string;
+  image?: string;
+  userName: string;
+  likesCount: number;
+  cookingTime: number;
+  rank: number;
 }
 
 interface RealtimeData {
   activeUsers: number;
-  liveStreams: number;
-  newRegistrations: number;
-  reportsToday: number;
+  newUsersToday: number;
+  newRecipesToday: number;
+  totalLikes: number;
 }
 
-export default function AdvancedAdminDashboard() {
-  const [stats, setStats] = useState<Stat[]>([]);
-  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
-  const [popularContent, setPopularContent] = useState<PopularContent[]>([]);
-  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics>({
-    serverLoad: 0,
-    memoryUsage: 0,
-    activeConnections: 0,
-    responseTime: 0,
-    uptime: ''
+export default function SimplifiedAdminDashboard() {
+  // State
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalRecipes: 0,
+    newUsersToday: 0,
+    newRecipesToday: 0
   });
+  
+  const [newUsers, setNewUsers] = useState<NewUser[]>([]);
+  const [newRecipes, setNewRecipes] = useState<NewRecipe[]>([]);
+  const [topUsers, setTopUsers] = useState<TopUser[]>([]);
+  const [topRecipes, setTopRecipes] = useState<TopRecipe[]>([]);
   const [realtimeData, setRealtimeData] = useState<RealtimeData>({
     activeUsers: 0,
-    liveStreams: 0,
-    newRegistrations: 0,
-    reportsToday: 0
+    newUsersToday: 0,
+    newRecipesToday: 0,
+    totalLikes: 0
   });
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'24h' | '7d' | '30d' | '90d'>('24h');
+
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hubConnection, setHubConnection] = useState<HubConnection | null>(null);
+  const [userPage, setUserPage] = useState(1);
+  const [recipePage, setRecipePage] = useState(1);
 
-useEffect(() => {
-  setStats(
-    dashboardData.dashboardStats.map(stat => ({
-      ...stat,
-      trend: stat.trend as 'up' | 'down' | 'stable'
-    }))
-  );
-  setRecentActivity(
-    dashboardData.recentActivity.map(activity => ({
-      ...activity,
-      type: activity.type as ActivityItem['type'],
-      severity: activity.severity as ActivityItem['severity'],
-    }))
-  );
-  setPopularContent(
-    dashboardData.popularContent.map(content => ({
-      ...content,
-      type: content.type as PopularContent['type'],
-      status: content.status as PopularContent['status'],
-    }))
-  );
-  setSystemMetrics(dashboardData.systemMetrics);
-  setRealtimeData(dashboardData.realtimeData);
+  // API Configuration
+  const API_BASE_URL = 'https://localhost:7205/api';
+  const HUB_URL = 'https://localhost:7205/dashboardHub';
 
-  const interval = setInterval(() => {
-    setRealtimeData(prev => ({
-      activeUsers: prev.activeUsers + Math.floor(Math.random() * 10 - 5),
-      liveStreams: Math.max(0, prev.liveStreams + Math.floor(Math.random() * 3 - 1)),
-      newRegistrations: prev.newRegistrations + Math.floor(Math.random() * 2),
-      reportsToday: prev.reportsToday + Math.floor(Math.random() * 1),
-    }));
-  }, 5000);
+  const getAuthToken = () => localStorage.getItem('authToken') || '';
+  const getHeaders = () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getAuthToken()}`
+  });
 
-  return () => clearInterval(interval);
-}, []);
+  // SignalR Connection
+  const initializeSignalR = useCallback(async () => {
+    try {
+      const connection = new HubConnectionBuilder()
+        .withUrl(HUB_URL, {
+          accessTokenFactory: () => getAuthToken()
+        })
+        .withAutomaticReconnect()
+        .configureLogging(LogLevel.Information)
+        .build();
+
+      connection.on('RealtimeUpdate', (data: RealtimeData) => {
+        setRealtimeData(data);
+        // Update stats with realtime data
+        setStats(prev => ({
+          ...prev,
+          newUsersToday: data.newUsersToday,
+          newRecipesToday: data.newRecipesToday
+        }));
+      });
+
+      connection.on('NewUserRegistered', (user: NewUser) => {
+        setNewUsers(prev => [user, ...prev.slice(0, 9)]);
+        setStats(prev => ({ ...prev, totalUsers: prev.totalUsers + 1 }));
+      });
+
+      connection.on('NewRecipeAdded', (recipe: NewRecipe) => {
+        setNewRecipes(prev => [recipe, ...prev.slice(0, 9)]);
+        setStats(prev => ({ ...prev, totalRecipes: prev.totalRecipes + 1 }));
+      });
+
+      connection.on('TopUsersUpdated', (users: TopUser[]) => {
+        setTopUsers(users);
+      });
+
+      connection.on('TopRecipesUpdated', (recipes: TopRecipe[]) => {
+        setTopRecipes(recipes);
+      });
+
+      await connection.start();
+      await connection.invoke('JoinAdminGroup');
+      setHubConnection(connection);
+      console.log('SignalR Connected');
+    } catch (error) {
+      console.error('SignalR Connection Error:', error);
+    }
+  }, []);
+
+  // API Calls
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
+        headers: getHeaders()
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchNewUsers = async (page: number = 1) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/new-users?page=${page}&limit=10`, {
+        headers: getHeaders()
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (page === 1) {
+          setNewUsers(data);
+        } else {
+          setNewUsers(prev => [...prev, ...data]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching new users:', error);
+    }
+  };
+
+  const fetchNewRecipes = async (page: number = 1) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/new-recipes?page=${page}&limit=10`, {
+        headers: getHeaders()
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (page === 1) {
+          setNewRecipes(data);
+        } else {
+          setNewRecipes(prev => [...prev, ...data]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching new recipes:', error);
+    }
+  };
+
+  const fetchTopUsers = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/top-users?limit=3`, {
+        headers: getHeaders()
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTopUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching top users:', error);
+    }
+  };
+
+  const fetchTopRecipes = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/top-recipes?limit=3`, {
+        headers: getHeaders()
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTopRecipes(data);
+      }
+    } catch (error) {
+      console.error('Error fetching top recipes:', error);
+    }
+  };
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchDashboardStats(),
+        fetchNewUsers(1),
+        fetchNewRecipes(1),
+        fetchTopUsers(),
+        fetchTopRecipes()
+      ]);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await loadDashboardData();
     setRefreshing(false);
   };
 
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'user': return Users;
-      case 'recipe': return BookOpen;
-      case 'host': return Crown;
-      case 'report': return Flag;
-      case 'live': return Video;
-      case 'subscription': return DollarSign;
-      default: return Activity;
-    }
+  const loadMoreUsers = () => {
+    const nextPage = userPage + 1;
+    setUserPage(nextPage);
+    fetchNewUsers(nextPage);
   };
 
-  const getActivityColor = (severity: ActivityItem['severity']) => {
-    switch (severity) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-400';
-    }
+  const loadMoreRecipes = () => {
+    const nextPage = recipePage + 1;
+    setRecipePage(nextPage);
+    fetchNewRecipes(nextPage);
   };
 
-  const getContentStatusColor = (status: PopularContent['status']) => {
-    switch (status) {
-      case 'trending': return 'text-green-600 bg-green-100';
-      case 'flagged': return 'text-red-600 bg-red-100';
-      case 'active': return 'text-blue-600 bg-blue-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
+  useEffect(() => {
+    initializeSignalR();
+    loadDashboardData();
 
-  const StatCard = ({ stat }: { stat: Stat }) => (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden group hover:shadow-xl transition-all duration-300">
-      <div className={`bg-gradient-to-r ${stat.bgGradient} p-6 text-white`}>
+    return () => {
+      if (hubConnection) {
+        hubConnection.invoke('LeaveAdminGroup');
+        hubConnection.stop();
+      }
+    };
+  }, [initializeSignalR]);
+
+  // Components
+  const StatCard = ({ title, value, icon: Icon, color, bgColor }: any) => (
+    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+      <div className={`${bgColor} p-6 text-white`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-white bg-opacity-20 rounded-xl">
-              <stat.icon size={24} />
+              <Icon size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium opacity-90">{stat.label}</p>
-              <p className="text-3xl font-bold">
-                {stat.id === 'totalRevenue' ? `$${(stat.value / 1000).toFixed(0)}K` : stat.value.toLocaleString()}
-              </p>
+              <p className="text-sm font-medium opacity-90">{title}</p>
+              <p className="text-3xl font-bold">{value.toLocaleString()}</p>
             </div>
-          </div>
-          <div className={`flex items-center space-x-1 px-3 py-1 rounded-full bg-white bg-opacity-20`}>
-            {stat.trend === 'up' ? <ArrowUp size={16} /> : stat.trend === 'down' ? <ArrowDown size={16} /> : <Activity size={16} />}
-            <span className="text-sm font-medium">{Math.abs(stat.change)}%</span>
           </div>
         </div>
       </div>
@@ -194,28 +310,35 @@ useEffect(() => {
     </div>
   );
 
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1: return <Crown className="text-yellow-500" size={20} />;
+      case 2: return <Award className="text-gray-400" size={20} />;
+      case 3: return <Award className="text-amber-600" size={20} />;
+      default: return <Star className="text-blue-500" size={16} />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-slate-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
-          <p className="text-slate-600 mt-1">Comprehensive platform management and analytics</p>
+          <p className="text-slate-600 mt-1">Platform overview and analytics</p>
         </div>
         <div className="flex items-center space-x-3 mt-4 sm:mt-0">
-          <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
-            <Calendar size={16} className="text-slate-500" />
-            <select 
-              value={selectedTimeRange}
-              onChange={(e) => setSelectedTimeRange(e.target.value as any)}
-              className="text-sm font-medium text-slate-700 bg-transparent border-none outline-none"
-            >
-              <option value="24h">Last 24 Hours</option>
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-              <option value="90d">Last 90 Days</option>
-            </select>
-          </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -232,197 +355,210 @@ useEffect(() => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-slate-800 flex items-center">
             <Zap size={20} className="mr-2 text-yellow-500" />
-            Real-time Metrics
+            Live Metrics
           </h2>
           <div className="flex items-center space-x-2 text-sm text-slate-600">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>Live Data</span>
+            <span>Live Data {hubConnection?.state === 'Connected' ? '(Connected)' : '(Disconnected)'}</span>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <RealtimeCard title="Active Users" value={realtimeData.activeUsers} icon={Users} color="bg-blue-500" />
-          <RealtimeCard title="Live Streams" value={realtimeData.liveStreams} icon={Video} color="bg-red-500" />
-          <RealtimeCard title="New Registrations" value={realtimeData.newRegistrations} icon={UserCheck} color="bg-green-500" />
-          <RealtimeCard title="Reports Today" value={realtimeData.reportsToday} icon={Flag} color="bg-orange-500" />
+          <RealtimeCard title="New Users Today" value={realtimeData.newUsersToday} icon={UserPlus} color="bg-green-500" />
+          <RealtimeCard title="New Recipes Today" value={realtimeData.newRecipesToday} icon={BookOpen} color="bg-purple-500" />
+          <RealtimeCard title="Total Likes" value={realtimeData.totalLikes} icon={Heart} color="bg-red-500" />
         </div>
       </div>
 
       {/* Main Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat) => (
-          <StatCard key={stat.id} stat={stat} />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Total Users"
+          value={stats.totalUsers}
+          icon={Users}
+          color="text-blue-600"
+          bgColor="bg-gradient-to-r from-blue-500 to-blue-600"
+        />
+        <StatCard
+          title="Total Recipes"
+          value={stats.totalRecipes}
+          icon={BookOpen}
+          color="text-green-600"
+          bgColor="bg-gradient-to-r from-green-500 to-emerald-600"
+        />
+        <StatCard
+          title="New Users Today"
+          value={stats.newUsersToday}
+          icon={UserPlus}
+          color="text-purple-600"
+          bgColor="bg-gradient-to-r from-purple-500 to-indigo-600"
+        />
+        <StatCard
+          title="New Recipes Today"
+          value={stats.newRecipesToday}
+          icon={TrendingUp}
+          color="text-orange-600"
+          bgColor="bg-gradient-to-r from-orange-500 to-red-500"
+        />
       </div>
 
-      {/* System Health & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* System Health */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-            <Server size={20} className="mr-2 text-green-500" />
-            System Health
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-slate-600">Server Load</span>
-                <span className="text-sm font-bold text-slate-800">{systemMetrics.serverLoad}%</span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    systemMetrics.serverLoad > 80 ? 'bg-red-500' : 
-                    systemMetrics.serverLoad > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}
-                  style={{ width: `${systemMetrics.serverLoad}%` }}
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-slate-600">Memory Usage</span>
-                <span className="text-sm font-bold text-slate-800">{systemMetrics.memoryUsage}%</span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    systemMetrics.memoryUsage > 80 ? 'bg-red-500' : 
-                    systemMetrics.memoryUsage > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}
-                  style={{ width: `${systemMetrics.memoryUsage}%` }}
-                ></div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
-              <div>
-                <p className="text-xs text-slate-500">Active Connections</p>
-                <p className="text-lg font-bold text-slate-800">{systemMetrics.activeConnections.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Response Time</p>
-                <p className="text-lg font-bold text-slate-800">{systemMetrics.responseTime}ms</p>
-              </div>
+      {/* Top Users and Top Recipes */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Top Users */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
+          <div className="p-6 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-800 flex items-center">
+              <Crown size={20} className="mr-2 text-yellow-500" />
+              Top Users
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {topUsers.map((user) => (
+                <div key={user.id} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    {getRankIcon(user.rank)}
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                      {user.firstName[0]}{user.lastName[0]}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-slate-800">{user.firstName} {user.lastName}</h4>
+                    <div className="flex items-center space-x-4 text-sm text-slate-600">
+                      <span className="flex items-center">
+                        <Heart size={12} className="mr-1 text-red-500" />
+                        {user.totalLikes} likes
+                      </span>
+                      <span className="flex items-center">
+                        <BookOpen size={12} className="mr-1 text-green-500" />
+                        {user.totalRecipes} recipes
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-slate-600">Score</p>
+                    <p className="text-lg font-bold text-blue-600">{user.engagementScore.toFixed(1)}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg border border-slate-200">
+        {/* Top Recipes */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
           <div className="p-6 border-b border-slate-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center">
-                <Activity size={20} className="mr-2 text-blue-500" />
-                Recent Activity ({recentActivity.length})
-              </h3>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                View All
-              </button>
+            <h3 className="text-lg font-semibold text-slate-800 flex items-center">
+              <Star size={20} className="mr-2 text-yellow-500" />
+              Most Liked Recipes
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {topRecipes.map((recipe) => (
+                <div key={recipe.id} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-slate-50 to-green-50 rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    {getRankIcon(recipe.rank)}
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
+                      <BookOpen size={16} className="text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-slate-800 truncate">{recipe.title}</h4>
+                    <p className="text-sm text-slate-600">by {recipe.userName}</p>
+                    <div className="flex items-center space-x-3 text-sm text-slate-500">
+                      <span className="flex items-center">
+                        <Heart size={12} className="mr-1 text-red-500" />
+                        {recipe.likesCount} likes
+                      </span>
+                      <span>{recipe.cookingTime} min</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* New Users and New Recipes */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* New Users */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
+          <div className="p-6 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-800 flex items-center">
+              <UserPlus size={20} className="mr-2 text-green-500" />
+              New Users ({newUsers.length})
+            </h3>
           </div>
           <div className="p-6 max-h-96 overflow-y-auto">
-            <div className="space-y-4">
-              {recentActivity.map((activity) => {
-                const IconComponent = getActivityIcon(activity.type);
-                return (
-                  <div key={activity.id} className="flex items-start space-x-4 p-3 hover:bg-slate-50 rounded-lg transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.severity)}`}>
-                      <IconComponent size={14} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800">
-                        {activity.action}
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        by <span className="font-medium">{activity.user}</span>
-                        {activity.target && (
-                          <> on <span className="font-medium">{activity.target}</span></>
-                        )}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
-                    </div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      activity.severity === 'high' ? 'bg-red-100 text-red-600' :
-                      activity.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                      'bg-green-100 text-green-600'
-                    }`}>
-                      {activity.severity}
-                    </div>
+            <div className="space-y-3">
+              {newUsers.map((user) => (
+                <div key={user.id} className="flex items-center space-x-4 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-medium">
+                    {user.firstName[0]}{user.lastName[0]}
                   </div>
-                );
-              })}
+                  <div className="flex-1">
+                    <h4 className="font-medium text-slate-800">{user.firstName} {user.lastName}</h4>
+                    <p className="text-sm text-slate-600">{user.email}</p>
+                    <p className="text-xs text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    user.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {user.status}
+                  </div>
+                </div>
+              ))}
             </div>
+            <button
+              onClick={loadMoreUsers}
+              className="w-full mt-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              <span>Load More</span>
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Popular Content */}
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
-        <div className="p-6 border-b border-slate-200">
-          <div className="flex items-center justify-between">
+        {/* New Recipes */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
+          <div className="p-6 border-b border-slate-200">
             <h3 className="text-lg font-semibold text-slate-800 flex items-center">
-              <TrendingUp size={20} className="mr-2 text-green-500" />
-              Popular Content & Reports
+              <BookOpen size={20} className="mr-2 text-purple-500" />
+              New Recipes ({newRecipes.length})
             </h3>
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
-                Content
-              </button>
-              <button className="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-                Reports
-              </button>
-            </div>
           </div>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {popularContent.map((content) => (
-              <div key={content.id} className="flex items-center space-x-4 p-4 border border-slate-200 rounded-xl hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-slate-200 to-slate-300 rounded-lg flex items-center justify-center">
-                  {content.type === 'recipe' && <BookOpen size={20} className="text-slate-600" />}
-                  {content.type === 'video' && <Video size={20} className="text-slate-600" />}
-                  {content.type === 'live' && <Play size={20} className="text-red-500" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="font-medium text-slate-800 truncate">{content.title}</h4>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getContentStatusColor(content.status)}`}>
-                      {content.status}
-                    </span>
+          <div className="p-6 max-h-96 overflow-y-auto">
+            <div className="space-y-3">
+              {newRecipes.map((recipe) => (
+                <div key={recipe.id} className="flex items-center space-x-4 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
+                    <BookOpen size={16} className="text-white" />
                   </div>
-                  <p className="text-sm text-slate-600 mb-2">by {content.creator}</p>
-                  <div className="flex items-center space-x-4 text-xs text-slate-500">
-                    <span className="flex items-center">
-                      <Eye size={12} className="mr-1" />
-                      {content.metrics.views.toLocaleString()}
-                    </span>
-                    <span className="flex items-center">
-                      <Heart size={12} className="mr-1" />
-                      {content.metrics.likes.toLocaleString()}
-                    </span>
-                    <span className="flex items-center">
-                      <MessageSquare size={12} className="mr-1" />
-                      {content.metrics.comments.toLocaleString()}
-                    </span>
-                    {content.metrics.rating && (
+                  <div className="flex-1">
+                    <h4 className="font-medium text-slate-800 truncate">{recipe.title}</h4>
+                    <p className="text-sm text-slate-600">by {recipe.userName}</p>
+                    <div className="flex items-center space-x-3 text-xs text-slate-500">
+                      <span>{recipe.category}</span>
+                      <span>{recipe.cookingTime} min</span>
                       <span className="flex items-center">
-                        <Star size={12} className="mr-1 text-yellow-500" />
-                        {content.metrics.rating}
+                        <Heart size={10} className="mr-1 text-red-500" />
+                        {recipe.likesCount}
                       </span>
-                    )}
+                    </div>
+                    <p className="text-xs text-slate-500">{new Date(recipe.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className="flex flex-col space-y-1">
-                  <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details">
-                    <Eye size={16} />
-                  </button>
-                  {content.status === 'flagged' && (
-                    <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Take Action">
-                      <Flag size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button
+              onClick={loadMoreRecipes}
+              className="w-full mt-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              <span>Load More</span>
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
       </div>

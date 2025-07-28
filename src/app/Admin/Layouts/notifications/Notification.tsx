@@ -1,139 +1,120 @@
 'use client';
-import { Notification,fetchNotifications, updateNotificationStatus, markAllAsRead } from '@/app/Admin/Layouts/Data/notifiData';
-import React, { useState } from 'react';
-import { useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { HubConnectionBuilder, HubConnection } from '@microsoft/signalr';
+import { useRouter } from 'next/navigation';
 import { 
   Bell, 
-  AlertTriangle, 
   UserX, 
-  BookOpen, 
-  Bug, 
-  CheckCircle, 
-  XCircle, 
-  Eye, 
-  User, 
-  Clock, 
-  Filter,
-  Search,
-  ChefHat,
   Flag,
-  Settings,
   ExternalLink,
-  MessageSquare,
-  Star,
-  Calendar
+  Eye,
+  User,
+  Clock,
+  XCircle,
+  CheckCircle
 } from 'lucide-react';
 
+export interface Notification {
+  id: string;
+  type: 'user_report' | 'recipe_report';
+  title: string;
+  description: string;
+  timestamp: string;
+  reporterId: string;
+  reporterName: string;
+  targetId: string;
+  targetName: string;
+  targetType: 'user' | 'recipe';
+  isRead: boolean;
+}
 
-
-const AdminNotifications: React.FC = () => {
+const AdminNotificationsPage: React.FC = () => {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [connection, setConnection] = useState<HubConnection | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const loadNotifications = async () => {
+    // Load existing notifications
+    const loadNotifications = async () => {
+      try {
+        const response = await fetch('/api/notifications');
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data);
+        }
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Setup SignalR connection
+    const setupSignalR = async () => {
+      const newConnection = new HubConnectionBuilder()
+        .withUrl('/notificationHub')
+        .build();
+
+      try {
+        await newConnection.start();
+        console.log('Connected to SignalR hub');
+
+        // Listen for new notifications
+        newConnection.on('ReceiveNotification', (notification: Notification) => {
+          setNotifications(prev => [notification, ...prev]);
+        });
+
+        setConnection(newConnection);
+      } catch (error) {
+        console.error('Failed to connect to SignalR hub:', error);
+      }
+    };
+
+    loadNotifications();
+    setupSignalR();
+
+    return () => {
+      if (connection) {
+        connection.stop();
+      }
+    };
+  }, []);
+
+  const handleMarkAsRead = async (notificationId: string) => {
     try {
-      const data = await fetchNotifications();
-      setNotifications(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  loadNotifications();
-}, []);
-
-
-  const notificationTypes = [
-    { key: 'all', label: 'All Notifications', icon: Bell, count: notifications.length },
-    { key: 'recipe_approval', label: 'Recipe Approvals', icon: ChefHat, count: notifications.filter(n => n.type === 'recipe_approval').length },
-    { key: 'user_report', label: 'User Reports', icon: UserX, count: notifications.filter(n => n.type === 'user_report').length },
-    { key: 'recipe_report', label: 'Recipe Reports', icon: Flag, count: notifications.filter(n => n.type === 'recipe_report').length },
-    { key: 'malfunction', label: 'System Issues', icon: Bug, count: notifications.filter(n => n.type === 'malfunction').length }
-  ];
-
-  const filteredNotifications = notifications.filter(notification => {
-    const matchesTab = activeTab === 'all' || notification.type === activeTab;
-    const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         notification.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (notification.reporterName && notification.reporterName.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesPriority = !priorityFilter || notification.priority === priorityFilter;
-    const matchesStatus = !statusFilter || notification.status === statusFilter;
-    return matchesTab && matchesSearch && matchesPriority && matchesStatus;
-  });
-
-  const handleNotificationAction = async (id: string, action: 'approve' | 'reject' | 'resolve' | 'dismiss') => {
-  try {
-    await updateNotificationStatus(id, action);
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id
-          ? {
-              ...notification,
-              status:
-                action === 'approve'
-                  ? 'approved'
-                  : action === 'reject'
-                  ? 'rejected'
-                  : action === 'resolve'
-                  ? 'resolved'
-                  : 'dismissed',
-              isRead: true,
-            }
-          : notification
-      )
-    );
-    setSelectedNotification(null);
-  } catch (err) {
-    console.error('Failed to update notification:', err);
-  }
-};
-
-  const handleMarkAllRead = async () => {
-  try {
-    await markAllAsRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  } catch (err) {
-    console.error('Failed to mark all as read:', err);
-  }
-};
-
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      await fetch(`/api/notifications/${notificationId}/read`, { method: 'PATCH' });
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+      );
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-blue-100 text-blue-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'resolved': return 'bg-purple-100 text-purple-800';
-      case 'dismissed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleMarkAllAsRead = async () => {
+    try {
+      await fetch('/api/notifications/mark-all-read', { method: 'PATCH' });
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, isRead: true }))
+      );
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'recipe_approval': return ChefHat;
-      case 'user_report': return UserX;
-      case 'recipe_report': return Flag;
-      case 'malfunction': return Bug;
-      default: return Bell;
+  const handleNavigate = (notification: Notification) => {
+    // Mark as read when navigating
+    if (!notification.isRead) {
+      handleMarkAsRead(notification.id);
+    }
+
+    // Navigate to appropriate management page
+    if (notification.targetType === 'user') {
+      router.push(`/admin/users?highlight=${notification.targetId}`);
+    } else {
+      router.push(`/admin/recipes?highlight=${notification.targetId}`);
     }
   };
 
@@ -147,300 +128,168 @@ const AdminNotifications: React.FC = () => {
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
 
-  const handleNavigateToManagement = (notification: Notification) => {
-  if (notification.targetUrl) {
-    // Direct navigation if targetUrl is provided
-    window.location.href = notification.targetUrl;
-  } else {
-    // Construct URL based on type and ID
-    let url = '';
-    if (notification.targetType === 'user' && notification.targetId) {
-      url = `/Admin/users?highlight=${notification.targetId}`;
-    } else if (notification.targetType === 'recipe' && notification.targetId) {
-      url = `/Admin/recipes?highlight=${notification.targetId}`;
-    }
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
-    if (url) {
-      window.location.href = url;
-    } else {
-      alert(`No specific page for ${notification.targetName}`);
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
-};
-  
-  if (loading) return <div className="p-6 text-gray-600">Loading notifications...</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Bell className="w-8 h-8 text-blue-600" />
+              <div className="relative">
+                <Bell className="w-8 h-8 text-blue-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Notification Center</h1>
-                <p className="text-gray-600">Manage reports, approvals, and system alerts</p>
+                <h1 className="text-2xl font-bold text-gray-900">Reports & Notifications</h1>
+                <p className="text-gray-600">Manage user and recipe reports</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">
-                {notifications.filter(n => !n.isRead).length} unread
-              </span>
-              {/*Mark all Read Button */}
-              <button onClick={handleMarkAllRead} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-                Mark All Read
-              </button>
-
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-500">
+                {unreadCount} unread reports
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Mark All Read
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
-              <div className="space-y-2">
-                {notificationTypes.map((type) => {
-                  const Icon = type.icon;
-                  return (
-                    <button
-                      key={type.key}
-                      onClick={() => setActiveTab(type.key)}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                        activeTab === type.key
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="w-4 h-4" />
-                        <span className="text-sm font-medium">{type.label}</span>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        activeTab === type.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {type.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="bg-white rounded-lg shadow-sm border p-4">
-              <h3 className="font-semibold text-gray-900 mb-4">Quick Stats</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Pending Actions</span>
-                  <span className="font-semibold text-orange-600">
-                    {notifications.filter(n => n.status === 'pending').length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">High Priority</span>
-                  <span className="font-semibold text-red-600">
-                    {notifications.filter(n => n.priority === 'high' || n.priority === 'urgent').length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Today's Reports</span>
-                  <span className="font-semibold text-blue-600">
-                    {notifications.filter(n => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {/* Filter Tabs (Optional) */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="flex border-b">
+            <button className="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
+              All Reports ({notifications.length})
+            </button>
+            <button className="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+              Unread ({unreadCount})
+            </button>
+            <button className="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+              User Reports ({notifications.filter(n => n.type === 'user_report').length})
+            </button>
+            <button className="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+              Recipe Reports ({notifications.filter(n => n.type === 'recipe_report').length})
+            </button>
           </div>
+        </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search notifications..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Priorities</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="dismissed">Dismissed</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Notifications List */}
-            <div className="space-y-4">
-              {filteredNotifications.map((notification) => {
-                const Icon = getTypeIcon(notification.type);
-                return (
-                  <div
-                    key={notification.id}
-                    className={`bg-white rounded-lg shadow-sm border p-6 transition-all hover:shadow-md ${
-                      !notification.isRead ? 'border-l-4 border-l-blue-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className={`p-2 rounded-lg ${
-                          notification.priority === 'urgent' ? 'bg-red-100' :
-                          notification.priority === 'high' ? 'bg-orange-100' :
-                          notification.priority === 'medium' ? 'bg-yellow-100' :
-                          'bg-blue-100'
-                        }`}>
-                          <Icon className={`w-5 h-5 ${
-                            notification.priority === 'urgent' ? 'text-red-600' :
-                            notification.priority === 'high' ? 'text-orange-600' :
-                            notification.priority === 'medium' ? 'text-yellow-600' :
-                            'text-blue-600'
-                          }`} />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">{notification.title}</h3>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(notification.priority)}`}>
-                              {notification.priority.toUpperCase()}
-                            </span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(notification.status)}`}>
-                              {notification.status.toUpperCase()}
-                            </span>
-                          </div>
-                          
-                          <p className="text-gray-600 mb-3">{notification.description}</p>
-                          
-                          <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{formatTimeAgo(notification.timestamp)}</span>
-                            </div>
-                            {notification.reporterName && (
-                              <div className="flex items-center gap-1">
-                                <User className="w-4 h-4" />
-                                <span>By {notification.reporterName}</span>
-                              </div>
-                            )}
-                            {notification.targetName && (
-                              <div className="flex items-center gap-1">
-                                <span>Target: {notification.targetName}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setSelectedNotification(notification)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View Details
-                            </button>
-                            
-                            {notification.targetType && (
-                              <button
-                                onClick={() => handleNavigateToManagement(notification)}
-                                className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center gap-1"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                Go to {notification.targetType === 'user' ? 'User' : 'Recipe'} Management
-                              </button>
-                            )}
-                          </div>
-                        </div>
+        {/* Notifications List */}
+        <div className="space-y-4">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className={`bg-white rounded-lg shadow-sm border p-6 transition-all hover:shadow-md ${
+                !notification.isRead ? 'border-l-4 border-l-red-500 bg-red-50' : ''
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className={`p-2 rounded-lg ${!notification.isRead ? 'bg-red-100' : 'bg-gray-100'}`}>
+                    {notification.type === 'user_report' ? (
+                      <UserX className={`w-5 h-5 ${!notification.isRead ? 'text-red-600' : 'text-gray-600'}`} />
+                    ) : (
+                      <Flag className={`w-5 h-5 ${!notification.isRead ? 'text-red-600' : 'text-gray-600'}`} />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                      {!notification.isRead && (
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      )}
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        notification.type === 'user_report' 
+                          ? 'bg-orange-100 text-orange-800' 
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {notification.type.replace('_', ' ')}
+                      </span>
+                    </div>
+                    
+                    <p className="text-gray-600 mb-3">{notification.description}</p>
+                    
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatTimeAgo(notification.timestamp)}</span>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <User className="w-4 h-4" />
+                        <span>Reported by {notification.reporterName}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span>Target: {notification.targetName}</span>
+                      </div>
+                    </div>
 
-                      {notification.status === 'pending' && (
-                        <div className="flex items-center gap-2 ml-4">
-                          {notification.type === 'recipe_approval' && (
-                            <>
-                              <button
-                                onClick={() => handleNotificationAction(notification.id, 'approve')}
-                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition-colors"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleNotificationAction(notification.id, 'reject')}
-                                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition-colors"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Reject
-                              </button>
-                            </>
-                          )}
-                          {(notification.type === 'user_report' || notification.type === 'recipe_report') && (
-                            <>
-                              <button
-                                onClick={() => handleNotificationAction(notification.id, 'resolve')}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition-colors"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                Resolve
-                              </button>
-                              <button
-                                onClick={() => handleNotificationAction(notification.id, 'dismiss')}
-                                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition-colors"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Dismiss
-                              </button>
-                            </>
-                          )}
-                          {notification.type === 'malfunction' && (
-                            <button
-                              onClick={() => handleNotificationAction(notification.id, 'resolve')}
-                              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1 transition-colors"
-                            >
-                              <Settings className="w-4 h-4" />
-                              Mark Fixed
-                            </button>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedNotification(notification)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Details
+                      </button>
+                      
+                      <button
+                        onClick={() => handleNavigate(notification)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Go to {notification.targetType === 'user' ? 'User' : 'Recipe'} Management
+                      </button>
+
+                      {!notification.isRead && (
+                        <button
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1 transition-colors"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Mark Read
+                        </button>
                       )}
                     </div>
                   </div>
-                );
-              })}
-
-              {filteredNotifications.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm border">
-                  <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications found</h3>
-                  <p className="text-gray-600">Try adjusting your filters or check back later.</p>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          ))}
+
+          {notifications.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-lg shadow-sm border">
+              <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No reports yet</h3>
+              <p className="text-gray-600">New reports will appear here in real-time.</p>
+            </div>
+          )}
         </div>
 
         {/* Notification Detail Modal */}
@@ -449,10 +298,10 @@ const AdminNotifications: React.FC = () => {
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Notification Details</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Report Details</h2>
                   <button
                     onClick={() => setSelectedNotification(null)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     <XCircle className="w-6 h-6" />
                   </button>
@@ -470,75 +319,49 @@ const AdminNotifications: React.FC = () => {
                       <p className="capitalize">{selectedNotification.type.replace('_', ' ')}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Priority</span>
-                      <p className="capitalize">{selectedNotification.priority}</p>
+                      <span className="text-sm font-medium text-gray-500">Reported By</span>
+                      <p>{selectedNotification.reporterName}</p>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Status</span>
-                      <p className="capitalize">{selectedNotification.status}</p>
+                      <span className="text-sm font-medium text-gray-500">Target</span>
+                      <p>{selectedNotification.targetName}</p>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-500">Timestamp</span>
                       <p>{new Date(selectedNotification.timestamp).toLocaleString()}</p>
                     </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Status</span>
+                      <p className={selectedNotification.isRead ? 'text-green-600' : 'text-red-600'}>
+                        {selectedNotification.isRead ? 'Read' : 'Unread'}
+                      </p>
+                    </div>
                   </div>
 
-                  {selectedNotification.details && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Additional Details</h4>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        {Object.entries(selectedNotification.details).map(([key, value]) => (
-                          <div key={key} className="flex justify-between py-1">
-                            <span className="text-sm font-medium text-gray-600 capitalize">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}:
-                            </span>
-                            <span className="text-sm text-gray-900">{String(value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedNotification.status === 'pending' && (
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                      {selectedNotification.type === 'recipe_approval' && (
-                        <>
-                          <button
-                            onClick={() => handleNotificationAction(selectedNotification.id, 'approve')}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Approve Recipe
-                          </button>
-                          <button
-                            onClick={() => handleNotificationAction(selectedNotification.id, 'reject')}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            Reject Recipe
-                          </button>
-                        </>
-                      )}
-                      {(selectedNotification.type === 'user_report' || selectedNotification.type === 'recipe_report') && (
-                        <>
-                          <button
-                            onClick={() => handleNotificationAction(selectedNotification.id, 'resolve')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Resolve Issue
-                          </button>
-                          <button
-                            onClick={() => handleNotificationAction(selectedNotification.id, 'dismiss')}
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            Dismiss Report
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    {!selectedNotification.isRead && (
+                      <button
+                        onClick={() => {
+                          handleMarkAsRead(selectedNotification.id);
+                          setSelectedNotification({...selectedNotification, isRead: true});
+                        }}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark as Read
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        handleNavigate(selectedNotification);
+                        setSelectedNotification(null);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Go to Management
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -549,4 +372,4 @@ const AdminNotifications: React.FC = () => {
   );
 };
 
-export default AdminNotifications;
+export default AdminNotificationsPage;
