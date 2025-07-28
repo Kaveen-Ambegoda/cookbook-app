@@ -37,8 +37,72 @@ interface UserProfile {
   status: string;
 }
 
+// Helper function to handle API errors
+const handleApiError = (error: any, defaultMessage: string) => {
+  console.error("API Error:", error);
+  
+  if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+    return "Network error: Unable to connect to server. Please check your internet connection.";
+  }
+  
+  if (error.message) {
+    return error.message;
+  }
+  
+  return defaultMessage;
+};
+
+// Helper function to make API requests
+const makeApiRequest = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem("token");
+  
+  if (!token) {
+    throw new Error("No authentication token available");
+  }
+
+  // Check if API_BASE_URL is configured
+  if (!API_BASE_URL) {
+    throw new Error("API configuration error: Base URL not set");
+  }
+
+  const defaultHeaders = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const requestOptions = {
+    ...options,
+    headers: defaultHeaders,
+  };
+
+  try {
+    const response = await fetch(url, requestOptions);
+    
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.details || errorMessage;
+      } catch (parseError) {
+        console.warn("Could not parse error response:", parseError);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error("Network error: Unable to connect to server");
+    }
+    throw error;
+  }
+};
+
 export default function UserProfile() {
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth(); // Add isAuthenticated here
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +121,8 @@ export default function UserProfile() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   // Password change form state
   const [passwordForm, setPasswordForm] = useState({
@@ -67,35 +133,21 @@ export default function UserProfile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      // Check if user is authenticated before making request
+      if (!isAuthenticated) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const token = localStorage.getItem("token");
         
-        if (!token) {
-          toast.error("No authentication token found");
-          router.push("/Login_Register/Login");
-          return;
+        if (!API_BASE_URL) {
+          throw new Error("API configuration error: NEXT_PUBLIC_API_BASE_URL is not set");
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/profile/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!res.ok) {
-          if (res.status === 401) {
-            toast.error("Session expired. Please login again.");
-            logout();
-            router.push("/Login_Register/Login");
-            return;
-          }
-          throw new Error(`Failed to fetch user profile: ${res.status}`);
-        }
-        
-        const data = await res.json();
-        console.log("Fetched profile data:", data); // Debug log
+        const data = await makeApiRequest(`${API_BASE_URL}/api/profile/me`);
+        console.log("Fetched profile data:", data);
 
         const profileData = {
           fullName: data.username || "No name",
@@ -109,16 +161,27 @@ export default function UserProfile() {
 
         setUserProfile(profileData);
         setEditedProfile(profileData);
-      } catch (err) {
-        console.error("Profile fetch error:", err);
-        toast.error("Unable to load profile.");
+      } catch (error: any) {
+        console.error("Profile fetch error:", error);
+        
+        if (error.message.includes("401") || error.message.includes("Invalid user token")) {
+          logout();
+          router.push("/Login_Register/Login");
+          return;
+        }
+        
+        // Only show error toast if user is still authenticated
+        if (isAuthenticated) {
+          const errorMessage = handleApiError(error, "Unable to load profile.");
+          toast.error(errorMessage);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [isAuthenticated, logout, router]); // Add isAuthenticated to dependencies
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -129,11 +192,7 @@ export default function UserProfile() {
 
   const handleSaveProfile = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error("No authentication token found");
-        return;
-      }
+      setIsUpdating(true);
 
       // Create the update payload matching your DTO
       const updatePayload = {
@@ -143,29 +202,22 @@ export default function UserProfile() {
         profilePictureUrl: editedProfile.profilePicture
       };
 
-      console.log("Sending update payload:", updatePayload); // Debug log
+      console.log("Sending update payload:", updatePayload);
 
-      const response = await fetch(`${API_BASE_URL}/api/profile/update`, {
+      await makeApiRequest(`${API_BASE_URL}/api/profile/update`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify(updatePayload),
       });
 
-      if (response.ok) {
-        setUserProfile(editedProfile);
-        setIsEditing(false);
-        toast.success("Profile updated successfully!");
-      } else {
-        const errorData = await response.json();
-        console.error("Update error:", errorData);
-        toast.error(errorData.message || "Failed to update profile");
-      }
-    } catch (error) {
+      setUserProfile(editedProfile);
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    } catch (error: any) {
       console.error("Profile update error:", error);
-      toast.error("Something went wrong. Please try again.");
+      const errorMessage = handleApiError(error, "Failed to update profile");
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -190,27 +242,40 @@ export default function UserProfile() {
     formData.append("file", file);
 
     try {
+      setIsUploadingImage(true);
       const token = localStorage.getItem("token");
+      
       if (!token) {
-        toast.error("No authentication token found");
+        toast.error("Authentication required");
         return;
       }
 
-      const res = await fetch(`${API_BASE_URL}/api/profile/upload-image`, {
+      if (!API_BASE_URL) {
+        throw new Error("API configuration error: Base URL not set");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/profile/upload-image`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
+          // Don't set Content-Type for FormData - browser will set it with boundary
         },
         body: formData
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to upload image");
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.details || errorMessage;
+        } catch (parseError) {
+          console.warn("Could not parse error response:", parseError);
+        }
+        throw new Error(errorMessage);
       }
       
-      const data = await res.json();
-      console.log("Image upload response:", data); // Debug log
+      const data = await response.json();
+      console.log("Image upload response:", data);
       
       // Update both states with the new image URL
       const newImageUrl = data.url;
@@ -218,9 +283,12 @@ export default function UserProfile() {
       setUserProfile((prev) => ({ ...prev, profilePicture: newImageUrl }));
       
       toast.success("Profile image updated successfully!");
-    } catch (err) {
-      console.error("Image upload error:", err);
-      toast.error(err instanceof Error ? err.message : "Image upload failed");
+    } catch (error: any) {
+      console.error("Image upload error:", error);
+      const errorMessage = handleApiError(error, "Image upload failed");
+      toast.error(errorMessage);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -238,66 +306,50 @@ export default function UserProfile() {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error("No authentication token found");
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/profile/change-password`, {
+      await makeApiRequest(`${API_BASE_URL}/api/profile/change-password`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword
         }),
       });
 
-      if (response.ok) {
-        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-        setShowPasswordForm(false);
-        toast.success("Password changed successfully!");
-      } else {
-        const data = await response.json();
-        toast.error(data.message || "Failed to change password");
-      }
-    } catch (error) {
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setShowPasswordForm(false);
+      toast.success("Password changed successfully!");
+    } catch (error: any) {
       console.error("Password change error:", error);
-      toast.error("Something went wrong. Please try again.");
+      const errorMessage = handleApiError(error, "Failed to change password");
+      toast.error(errorMessage);
     }
   };
 
   const handleDeleteAccount = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error("No authentication token found");
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/profile/delete`, {
+      await makeApiRequest(`${API_BASE_URL}/api/profile/delete`, {
         method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
       });
 
-      if (response.ok) {
-        logout();
-        toast.success("Account deleted successfully");
-        router.push("/Login_Register/Login");
-      } else {
-        const data = await response.json();
-        toast.error(data.message || "Failed to delete account");
-      }
-    } catch (error) {
+      logout();
+      toast.success("Account deleted successfully");
+      router.push("/Login_Register/Login");
+    } catch (error: any) {
       console.error("Delete account error:", error);
-      toast.error("Something went wrong. Please try again.");
+      const errorMessage = handleApiError(error, "Failed to delete account");
+      toast.error(errorMessage);
     }
   };
+
+  // If not authenticated, don't render the profile page
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -312,7 +364,7 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
-      
+     
       
       {/* Header */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -354,10 +406,15 @@ export default function UserProfile() {
                 {isEditing && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-4 right-25 bg-black/70 text-white p-1 rounded-full hover:bg-black/90 transition-colors"
+                    disabled={isUploadingImage}
+                    className="absolute bottom-4 right-25 bg-black/70 text-white p-1 rounded-full hover:bg-black/90 transition-colors disabled:opacity-50"
                     title="Edit profile picture"
                   >
-                    <FaCamera className="w-4 h-4" />
+                    {isUploadingImage ? (
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <FaCamera className="w-4 h-4" />
+                    )}
                   </button>
                 )}
 
@@ -367,6 +424,7 @@ export default function UserProfile() {
                   accept="image/*"
                   style={{ display: "none" }}
                   onChange={handleProfilePictureChange}
+                  disabled={isUploadingImage}
                 />
 
                 <span className={`text-xs text-gray-600 ${abeezee.className}`}>
@@ -423,6 +481,7 @@ export default function UserProfile() {
                       rows={3}
                       className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#F25019]"
                       placeholder="Tell us about yourself..."
+                      disabled={isUpdating}
                     />
                   ) : (
                     <p className={`text-gray-700 ${roboto.className}`}>{userProfile.bio || "No bio added yet."}</p>
@@ -440,6 +499,7 @@ export default function UserProfile() {
                       value={editedProfile.location}
                       onChange={(e) => setEditedProfile({...editedProfile, location: e.target.value})}
                       className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#F25019]"
+                      disabled={isUpdating}
                     >
                       <option value="">Select a country</option>
                       {countries.map((country) => (
@@ -464,6 +524,7 @@ export default function UserProfile() {
                       rows={2}
                       className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#F25019]"
                       placeholder="Enter links separated by commas"
+                      disabled={isUpdating}
                     />
                   ) : (
                     <div className="space-y-1">
@@ -482,7 +543,8 @@ export default function UserProfile() {
                 <div>
                   <button
                     onClick={handleEditToggle}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors duration-300 ${
+                    disabled={isUpdating}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors duration-300 disabled:opacity-50 ${
                       isEditing 
                         ? 'bg-gray-500 hover:bg-gray-600 text-white' 
                         : 'bg-[#F25019] hover:bg-[#C93E0F] text-white'
@@ -498,10 +560,15 @@ export default function UserProfile() {
                 <div className="mt-6">
                   <button
                     onClick={handleSaveProfile}
-                    className={`flex items-center gap-2 px-6 py-2 bg-[#F25019] hover:bg-[#C93E0F] text-white rounded-md transition-colors duration-300 ${roboto.className}`}
+                    disabled={isUpdating}
+                    className={`flex items-center gap-2 px-6 py-2 bg-[#F25019] hover:bg-[#C93E0F] text-white rounded-md transition-colors duration-300 disabled:opacity-50 ${roboto.className}`}
                   >
-                    <FaSave className="w-4 h-4" />
-                    Save Changes
+                    {isUpdating ? (
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <FaSave className="w-4 h-4" />
+                    )}
+                    {isUpdating ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               )}

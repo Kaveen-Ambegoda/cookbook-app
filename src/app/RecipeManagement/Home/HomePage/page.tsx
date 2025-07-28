@@ -55,7 +55,7 @@ const HomePage = () => {
       setOccasionOptions(data.occasions || []);
       setSkillLevelOptions(data.skillLevels || []);
     } catch (error) {
-      console.error("Error fetching filter options:", error);
+      
     }
   };
 

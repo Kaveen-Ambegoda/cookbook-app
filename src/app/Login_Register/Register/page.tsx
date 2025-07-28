@@ -6,26 +6,31 @@ import { abeezee } from '@/utils/fonts';
 import { useRouter } from "next/navigation";
 
 import { FcGoogle } from "react-icons/fc"; 
-import { FaFacebookF, FaApple } from 'react-icons/fa'; 
+import { FaFacebookF, FaApple, FaUtensils, FaLock, FaEnvelope, FaUser } from 'react-icons/fa'; 
+
+import toast, { Toaster } from "react-hot-toast";
 
 // Backend API base URL
 const API_BASE_URL = "https://localhost:7205";
 
 export default function SignUpPage() {
- 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
   const [confirmPassword, setConfirmPassword] = useState(""); 
+  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(""); 
   const router = useRouter();
 
   // Form submission handler for registering the user
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault(); 
+    setIsLoading(true);
 
     if (password !== confirmPassword) {
       setMessage("Passwords do not match"); 
+      toast.error("Passwords do not match");
+      setIsLoading(false);
       return; 
     }
 
@@ -48,127 +53,190 @@ export default function SignUpPage() {
 
       if (response.ok) {
         setMessage("User registered successfully"); 
-        router.push(`/Login_Register/EmailSent?email=${encodeURIComponent(email)}`);; //redirect to email sent message 
+        toast.success("Welcome to CookBook! Please check your email to verify your account. 🎉");
+        router.push(`/Login_Register/EmailSent?email=${encodeURIComponent(email)}`);
       } else {
         setMessage(data.message || "Registration failed"); 
+        toast.error(data.message || "Registration failed");
       }
     } catch (error) {
       console.error("Registration error:", error);
       setMessage("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="lg:min-h-[90vh] bg-cover bg-center flex items-center overflow-y-hidden pt-15 pb-10" style={{ backgroundImage: "url('/image/background_image3.png')" }}>
-     
-      {/* Sign-up Container */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Background Overlay with Blur */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        style={{ 
+          backgroundImage: "url('/image/background_image3.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      ></div>
       
-      <div className="lg:w-full lg:h-[41rem] lg:max-w-[35rem] rounded-xl bg-[#FFDC8F]/90 backdrop-blur lg:p-5 shadow-lg lg:pl-[4rem] lg:ml-[20rem] lg:mt-2 md:ml-[10rem] md:mt-[-2rem] sm:max-w-[20rem] sm:h-[30rem] sm:p-4 sm:pl-[2rem]">
-       
-        <h1 className={`mb-4 text-[2.5rem] font-semibold text-left text-[#F25019] ${adlam.className}`}>Sign Up</h1>
-
-        {/* Form Starts here */}
-        <form onSubmit={handleRegister} className="lg:w-[26rem] space-y-5">
-
-          {/* Full Name input */}
-          <div className="space-y-1 pt-2">
-            <label htmlFor="fullName" className={`block text-sm font-medium ${abeezee.className}`}>Full Name</label>
-            <input
-              id="fullName"
-              type="text"
-              required
-              className="w-[26rem] rounded-[3px] bg-white px-3 py-2 outline-none focus:ring"
-              placeholder="Full name"
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-            />
-          </div>
-
-          {/* Email input */}
-          <div className="space-y-1">
-            <label htmlFor="email" className={`block text-sm font-medium ${abeezee.className}`}>Email</label>
-            <input
-              id="email"
-              type="email"
-              required
-              className="w-[26rem] rounded-[3px] bg-white px-3 py-2 outline-none focus:ring"
-              placeholder="username@example.com"
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-            />
-          </div>
-
-          {/* Password input */}
-          <div className="space-y-1">
-            <label htmlFor="password" className={`block text-sm font-medium ${abeezee.className}`}>Password</label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={8} 
-              className="w-[26rem] rounded-[3px] bg-white px-3 py-2 outline-none focus:ring"
-              placeholder="Create a password"
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-            />
-          </div>
-
-          {/* Confirm Password input */}
-          <div className="space-y-1">
-            <label htmlFor="confirmPassword" className={`block text-sm font-medium ${abeezee.className}`}>Confirm Password</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              required
-              minLength={8} 
-              className="w-[26rem] rounded-[3px] bg-white px-3 py-2 outline-none focus:ring"
-              placeholder="Re-enter your password"
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className={`mt-2 w-[26rem] rounded-md bg-[#F25019] py-2 text-white active:bg-[#C93E0F] cursor-pointer transition-colors  transition-colors duration-400 ease-in-out  ${roboto.className}`}>
-            Sign Up
-          </button>
-
-          <div className="w-[26rem] text-center">
-            <div className={`text-[#333333] text-[0.9rem] mt-5 ${abeezee.className}`}>or continue with</div>
-          </div>
-
-          {/* Social login icons */}
-          <div className="mt-4 flex justify-center gap-5">
-            <button type="button" aria-label="Continue with Google" className="p-2 px-9 rounded-full bg-white shadow">
-              <FcGoogle className="w-4 h-4" />
-            </button>
-            <button type="button" aria-label="Continue with Facebook" className="p-2 px-9 rounded-full bg-white shadow">
-              <FaFacebookF className="w-4 h-4 text-[#1877F2]" />
-            </button>
-            <button type="button" aria-label="Continue with Apple" className="p-2 px-9 rounded-full bg-white shadow">
-              <FaApple className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Sign-in link */}
-          <div className={`mt-4 text-center text-[0.9rem] ${roboto.className}`}>
-            <div className="text-[#333333]">
-              Already have an account?
-              <a href="/Login_Register/Login" className="text-[#AE4700] font-bold ml-1">Sign In</a>
+      {/* Modal Container */}
+      <div className="relative z-10 w-full max-w-md transform transition-all duration-300 ease-out">
+        {/* Main Modal Card */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 max-h-[90vh] overflow-y-auto">
+          
+          {/* Header Section */}
+          <div className="relative bg-gradient-to-br from-orange-50 to-red-50 p-8 text-center">
+            {/* Decorative Background Pattern */}
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute top-4 left-4 w-20 h-20 rounded-full bg-orange-400"></div>
+              <div className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-red-400"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-yellow-400"></div>
+            </div>
+            
+            <div className="relative z-10">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl shadow-lg mb-4">
+                <FaUtensils className="w-7 h-7 text-white" />
+              </div>
+              <h1 className={`text-2xl font-bold text-gray-800 mb-2 ${adlam.className}`}>
+                Join CookBook!
+              </h1>
+              <p className={`text-gray-600 text-sm ${abeezee.className}`}>
+                Start your culinary journey with us
+              </p>
             </div>
           </div>
-        </form>
 
-        {/* Display success or error message */}
-        {message && (
-          <div className="mt-4 text-center text-[0.9rem] text-red-600 font-semibold">
-            {message}
+          {/* Form Section */}
+          <div className="p-8 bg-white">
+            <form onSubmit={handleRegister} className="space-y-4">
+              
+              {/* Full Name Input */}
+              <div className="space-y-2">
+                <label htmlFor="fullName" className={`block text-sm font-semibold text-gray-700 ${abeezee.className}`}>
+                  Full Name
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <FaUser className="h-4 w-4 text-orange-400 group-focus-within:text-orange-500 transition-colors" />
+                  </div>
+                  <input
+                    id="fullName"
+                    type="text"
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:bg-white transition-all duration-300 text-sm"
+                    placeholder="Enter your full name"
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              {/* Email Input */}
+              <div className="space-y-2">
+                <label htmlFor="email" className={`block text-sm font-semibold text-gray-700 ${abeezee.className}`}>
+                  Email Address
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <FaEnvelope className="h-4 w-4 text-orange-400 group-focus-within:text-orange-500 transition-colors" />
+                  </div>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:bg-white transition-all duration-300 text-sm"
+                    placeholder="chef@cookbook.com"
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-2">
+                <label htmlFor="password" className={`block text-sm font-semibold text-gray-700 ${abeezee.className}`}>
+                  Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <FaLock className="h-4 w-4 text-orange-400 group-focus-within:text-orange-500 transition-colors" />
+                  </div>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={8} 
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:bg-white transition-all duration-300 text-sm"
+                    placeholder="Create a strong password"
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password Input */}
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className={`block text-sm font-semibold text-gray-700 ${abeezee.className}`}>
+                  Confirm Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <FaLock className="h-4 w-4 text-orange-400 group-focus-within:text-orange-500 transition-colors" />
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    required
+                    minLength={8} 
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:bg-white transition-all duration-300 text-sm"
+                    placeholder="Confirm your password"
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full py-3.5 px-6 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${roboto.className}`}
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    Creating your account...
+                  </div>
+                ) : (
+                  "Create CookBook Account"
+                )}
+              </button>
+
+              
+
+              {/* Sign-in Link */}
+              <div className={`text-center pt-6 border-t border-gray-100 ${roboto.className}`}>
+                <p className="text-gray-600 text-sm">
+                  Already have an account?{" "}
+                  <a 
+                    href="/Login_Register/Login" 
+                    className="text-orange-600 hover:text-orange-700 font-semibold transition-colors duration-300 hover:underline"
+                  >
+                    Sign in here
+                  </a>
+                </p>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
 
+        {/* Floating Decorative Elements */}
+        <div className="absolute -top-8 -left-8 w-16 h-16 bg-orange-400/20 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute -bottom-8 -right-8 w-20 h-20 bg-red-400/20 rounded-full blur-xl animate-pulse delay-1000"></div>
       </div>
+
+      
     </div>
   );
 }
