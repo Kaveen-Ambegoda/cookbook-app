@@ -1,8 +1,8 @@
 "use client"; 
 import { useState } from "react"; 
-import { adlam } from '@/app/utils/fonts'; 
-import { roboto } from '@/app/utils/fonts'; 
-import { abeezee } from '@/app/utils/fonts'; 
+import { adlam } from '@/utils/fonts'; 
+import { roboto } from '@/utils/fonts'; 
+import { abeezee } from '@/utils/fonts'; 
 import { useRouter } from "next/navigation";
 
 import { FcGoogle } from "react-icons/fc"; 

@@ -80,7 +80,7 @@ const ChallengeDetailForm = () => {
 
     try {
       const response = await axios.post(
-        "https://localhost:7205/api/challenges/add-details",
+        "https://localhost:7205/api/Challenges/add-details",
         formData,
         {
           headers: {

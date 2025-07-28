@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { FaSearch, FaBars, FaUserCircle } from 'react-icons/fa';
-import { inter } from '@/app/utils/fonts';
+import { inter } from '@/utils/fonts';
 import Image from 'next/image';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -18,10 +18,10 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const { isAuthenticated, username, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
-  console.log("Auth status:", isAuthenticated, username);
+  console.log("Auth status:", isAuthenticated, user?.username);
   
   const isLoginPage = pathname?.toLowerCase().includes('/login_register/login');
   const isRegisterPage = pathname?.toLowerCase().includes('/login_register/register');
@@ -94,9 +94,9 @@ export default function Navbar({ setIsOpen }: NavBarProps) {
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md z-50 text-sm">
-              {isAuthenticated && username ? (
+              {isAuthenticated && user?.username ? (
                 <div className="py-2">
-                  <div className="px-4 py-2 text-gray-800 border-b">{username}</div>
+                  <div className="px-4 py-2 text-gray-800 border-b">{user.username}</div>
                   <button
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     onClick={() => {

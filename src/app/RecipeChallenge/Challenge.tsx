@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaCalendarAlt, FaTrophy, FaShareAlt } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 export interface ChallengeDetail {
   id: string;
@@ -19,8 +20,11 @@ interface ChallengeProps {
 }
 
 const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
-  console.log("Rendering challenge:", challenge);
-  console.log("Image URL:", challenge.img); // For debug
+  const router = useRouter();
+
+  const handleLeaderboardClick = () => {
+    router.push(`/RecipeChallenge/JoinChallengePage/${challenge.id}/leaderBoard`);
+  };
 
   return (
     <div>
@@ -77,26 +81,34 @@ const Challenge: React.FC<ChallengeProps> = ({ challenge }) => {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-auto pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-                <button className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition">
-                  <FaShareAlt className="text-lg" />
-                  <span className="font-medium">LeaderBoard</span>
-                </button>
+              <div className="mt-auto pt-6 space-y-3">
+                {/* First row - Secondary actions */}
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
+                  <button
+                    className="flex items-center justify-center space-x-2 bg-white border border-gray-300 text-gray-700 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 px-5 py-2.5 rounded-lg transition-all duration-200 font-medium w-full sm:w-auto min-w-[140px]"
+                    onClick={handleLeaderboardClick}
+                  >
+                    <FaTrophy className="text-sm" />
+                    <span>Leaderboard</span>
+                  </button>
 
-                <Link
-                  href={`/RecipeChallenge/JoinChallengePage/${challenge.id}/VoteAndRateChallenge`}
-                  className="flex items-center space-x-2 text-slate-600 hover:text-orange-500 transition"
-                >
-                  <FaShareAlt className="text-lg" />
-                  <span className="font-medium">Vote and Rate</span>
-                </Link>
+                  <Link
+                    href={`/RecipeChallenge/JoinChallengePage/${challenge.id}/VoteAndRateChallenge`}
+                    className="flex items-center justify-center space-x-2 bg-white border border-gray-300 text-gray-700 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 px-5 py-2.5 rounded-lg transition-all duration-200 font-medium w-full sm:w-auto min-w-[140px]"
+                  >
+                    <span>Vote & Rate</span>
+                  </Link>
+                </div>
 
-                <Link
-                  href={`/RecipeChallenge/JoinChallengePage/${challenge.id}`}
-                  className="text-white bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-lg transition font-medium w-full sm:w-auto text-center shadow-md hover:shadow-lg"
-                >
-                  Join Challenge
-                </Link>
+                {/* Second row - Primary action */}
+                <div className="flex justify-center">
+                  <Link
+                    href={`/RecipeChallenge/JoinChallengePage/${challenge.id}`}
+                    className="flex items-center justify-center space-x-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-3 rounded-lg transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-100 w-full sm:w-[314px]"
+                  >
+                    <span>Join Challenge</span>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
