@@ -540,12 +540,12 @@ const RecipeForm = ({ mode, recipeId }: RecipeFormProps) => {
                       )}
 
                       {instructionsPreview.length > 0 && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                          <h4 className="font-medium text-blue-800 mb-2">Preview:</h4>
+                        <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                          <h4 className="font-medium text-green-800 mb-2">Preview:</h4>
                           <ol className="space-y-2">
                             {instructionsPreview.map((instruction, index) => (
                               <li key={index} className="flex items-start">
-                                <span className="text-blue-600 font-medium mr-3 mt-0.5">{index + 1}.</span>
+                                <span className="text-green-600 font-medium mr-3 mt-0.5">{index + 1}.</span>
                                 <span className="text-gray-700">{instruction}</span>
                               </li>
                             ))}
