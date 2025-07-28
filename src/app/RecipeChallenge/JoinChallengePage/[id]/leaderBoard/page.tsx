@@ -41,7 +41,7 @@ const LeaderboardPage = () => {
     async function fetchChallengeDetails() {
       try {
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/challenges/details/${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Challenges/details/${challengeId}`
         );
         setChallengeName(response.data.title);
       } catch (err) {
@@ -56,7 +56,7 @@ const LeaderboardPage = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}/leaderboard`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Submission/challenge/${challengeId}/leaderboard`
         );
         setLeaderboardData(response.data);
       } catch (err) {

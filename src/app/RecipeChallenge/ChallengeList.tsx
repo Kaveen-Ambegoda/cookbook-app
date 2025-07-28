@@ -11,7 +11,7 @@ const ChallengeList: React.FC = () => {
   useEffect(() => {
     axios
       .get<ChallengeDetail[]>(
-        `${process.env.NEXT_PUBLIC_API_URL}/challenges/details`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Challenges/details`
       )
       .then((res) => setChallenges(res.data))
       .finally(() => setLoading(false));

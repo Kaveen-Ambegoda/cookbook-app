@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import API from "@/app/utils/axiosInstance";
+import API from "@/utils/axiosInstance";
 import FeedbackHighlight from '@/components/FeedbackHighlight';
 import SimpleFooter from "@/components/SimpleFooter";
 

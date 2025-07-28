@@ -17,7 +17,7 @@ function JoinChallengePage({ params }: JoinChallengePageProps) {
   useEffect(() => {
     if (params?.id) {
       axios
-        .get<ChallengeDetail[]>(`${process.env.NEXT_PUBLIC_API_URL}/challenges/details`)
+        .get<ChallengeDetail[]>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Challenges/details`)
         .then((res) => {
           const found = res.data.find((c) => c.id.toString() === params.id);
           setChallenge(found || null);

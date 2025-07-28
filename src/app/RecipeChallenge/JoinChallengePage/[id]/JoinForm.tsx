@@ -320,7 +320,7 @@ const username = user?.username ?? "";
       // Submit to backend
       const token = localStorage.getItem('token'); // Or use your actual storage key
 
-      const response = await axios.post('https://localhost:7205/api/submission', submitFormData, {
+      const response = await axios.post('https://localhost:7205/api/Submission', submitFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`,

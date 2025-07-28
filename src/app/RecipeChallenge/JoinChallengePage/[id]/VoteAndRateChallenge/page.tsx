@@ -43,7 +43,7 @@ export default function VoteAndRateChallenge() {
       setError(null);
       try {
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Submission/challenge/${challengeId}`
         );
         const data = response.data;
         console.log("API data:", data); 
@@ -78,7 +78,7 @@ export default function VoteAndRateChallenge() {
     async function fetchChallengeDetails() {
       try {
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/challenges/details/${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Challenges/details/${challengeId}`
         );
         setChallengeName(response.data.title); // Use 'title' from ChallengeDetailDto
       } catch (err) {
@@ -94,7 +94,7 @@ export default function VoteAndRateChallenge() {
       if (!userEmail || !challengeId) return;
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/vote/user?userEmail=${userEmail}&challengeId=${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Vote/user?userEmail=${userEmail}&challengeId=${challengeId}`
         );
         const votes: { [key: string]: 'up' } = {};
         res.data.forEach((vote: any) => {
@@ -113,7 +113,7 @@ export default function VoteAndRateChallenge() {
       if (!challengeId) return;
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/vote/raters?challengeId=${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Vote/raters?challengeId=${challengeId}`
         );
         setRaterCount(res.data.count || 0);
       } catch {
@@ -129,7 +129,7 @@ export default function VoteAndRateChallenge() {
       if (!userEmail || !challengeId) return;
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/vote/user-ratings?userEmail=${userEmail}&challengeId=${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Vote/user-ratings?userEmail=${userEmail}&challengeId=${challengeId}`
         );
         // Convert array to object: { [submissionId]: stars }
         const ratingsObj: { [submissionId: string]: number } = {};
@@ -152,7 +152,7 @@ export default function VoteAndRateChallenge() {
     try {
       const userEmail = user?.email || session?.user?.email || localStorage.getItem('userEmail');
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/vote`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Vote`,
         {
           userEmail,
           submissionId: recipeId,
@@ -162,7 +162,7 @@ export default function VoteAndRateChallenge() {
       if (res.data && res.data.success) {
         // Refetch all recipes to get the latest vote counts
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Submission/challenge/${challengeId}`
         );
         const data = response.data;
         if (Array.isArray(data)) {
@@ -209,7 +209,7 @@ export default function VoteAndRateChallenge() {
     if (!userEmail || !challengeId) return;
     try {
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/vote/rate`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Vote/rate`,
         {
           userEmail,
           submissionId: recipeId,
@@ -221,7 +221,7 @@ export default function VoteAndRateChallenge() {
         toast.success('Rating submitted successfully!');
         // Refetch recipes to update ratings
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/submission/challenge/${challengeId}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Submission/challenge/${challengeId}`
         );
         const data = response.data;
         if (Array.isArray(data)) {
