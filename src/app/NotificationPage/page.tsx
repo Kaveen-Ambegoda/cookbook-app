@@ -35,7 +35,7 @@ const getIcon = (type: string) => {
 };
 
 const NotificationsPage = () => {
-  const { isAuthenticated } = useAuth(); // ✅ Access auth status
+  const { isAuthenticated } = useAuth(); // Access auth status
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -51,11 +51,12 @@ const NotificationsPage = () => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("https://localhost:7205/api/Notifications", {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Notifications`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+
         setNotifications(response.data);
       } catch (error) {
         console.error("Failed to fetch notifications", error);
