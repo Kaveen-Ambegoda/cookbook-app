@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useForm, FormProvider, useFormContext } from "react-hook-form"
 import { motion } from "framer-motion"
 import axios from "axios" // Keep axios for general use, but use API for authenticated calls
-import API from "@/app/utils/axiosInstance" // Import the configured axios instance
+import API from "@/utils/axiosInstance" // Import the configured axios instance
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import { Button } from "@/components/ui/button" // Import Button component for styling

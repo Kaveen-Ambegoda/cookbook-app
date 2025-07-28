@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { FaSearch, FaBars, FaBell, FaUserCircle } from 'react-icons/fa';
-import { inter } from '@/app/utils/fonts';
+import { inter } from '@/utils/fonts';
 import Image from 'next/image';
 import SearchBar from './SearchBar';
 import { useState} from 'react';
