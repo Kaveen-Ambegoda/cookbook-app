@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/app/context/authContext";
 import { useRouter, usePathname } from "next/navigation";
+import NotificationBell from "./NotificationBell";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -38,8 +39,7 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
     },
     { icon: FaClipboardList, label: "Recipe Forum", route: "/Forum" },
     { icon: FaTrophy, label: "Recipe Challenge", route: "/RecipeChallenge" },
-    // ✅ Notifications replaces Settings
-    { icon: FaBell, label: "Notifications", route: "/NotificationPage" },
+    { icon: "notification-bell", label: "Notifications", route: "/NotificationPage" }, // ✅ Here
   ];
 
   const logoutItem = isAuthenticated
@@ -99,13 +99,20 @@ const SideBar: React.FC<SidebarProps> = ({ isOpen }) => {
               }}
               className="group relative flex items-center justify-center w-full py-3 cursor-pointer"
             >
-              <IconComponent
-                className={`text-2xl transition-colors duration-200 ${
-                  isActive
-                    ? 'text-yellow-400'
-                    : 'text-white group-hover:text-yellow-300'
-                }`}
-              />
+              {item.icon === "notification-bell" ? (
+                <div className="relative">
+                  <NotificationBell />
+                </div>
+              ) : (
+                <IconComponent
+                  className={`text-2xl transition-colors duration-200 ${
+                    isActive
+                      ? 'text-yellow-400'
+                      : 'text-white group-hover:text-yellow-300'
+                  }`}
+                />
+              )}
+
               {/* Tooltip */}
               <span
                 className="
