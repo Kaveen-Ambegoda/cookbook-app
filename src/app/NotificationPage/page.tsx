@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bell, Star, Clock, CheckCircle, X, MessageCircle } from "lucide-react"; // Added MessageCircle
+import {
+  Bell,
+  Star,
+  Clock,
+  CheckCircle,
+  X,
+  MessageCircle,
+} from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/authContext"; // ✅ Import auth context
+import { useAuth } from "@/app/context/authContext"; // ✅ Auth context
 
 interface NotificationDto {
   id: number;
@@ -35,13 +42,12 @@ const getIcon = (type: string) => {
 };
 
 const NotificationsPage = () => {
-  const { isAuthenticated } = useAuth(); // Access auth status
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState("all");
 
-  // ✅ Redirect if not logged in
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/Login_Register/Login");
@@ -51,15 +57,31 @@ const NotificationsPage = () => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Notifications`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+
+        // ✅ Fetch all notifications
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Notifications`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         setNotifications(response.data);
+
+        // ✅ Mark all as read
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Notifications/mark-as-read`,
+          null,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
       } catch (error) {
-        console.error("Failed to fetch notifications", error);
+        console.error("Failed to fetch or mark notifications", error);
         toast.error("Unable to load notifications");
       } finally {
         setLoading(false);
@@ -72,7 +94,9 @@ const NotificationsPage = () => {
   const filteredNotifications =
     filter === "all"
       ? notifications
-      : notifications.filter((n) => (filter === "unread" ? !n.isRead : n.isRead));
+      : notifications.filter((n) =>
+          filter === "unread" ? !n.isRead : n.isRead
+        );
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 mt-12">
