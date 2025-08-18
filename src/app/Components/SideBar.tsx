@@ -9,9 +9,10 @@ import {
   FaCog,
   FaSignOutAlt,
   FaUsers,
+  FaCalculator,
 } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-
+import { FaComments } from 'react-icons/fa';
 interface SidebarProps {
   isOpen?: boolean;
 }
@@ -48,25 +49,38 @@ export default function Sidebar({ isOpen = false }: SidebarProps) {
       label: 'Recipes',
       authRequired: false 
     },
-    { 
-      icon: FaUsers, 
-      path: '/community', 
-      label: 'Community',
-      authRequired: true // Require authentication for community
-    },
-    { 
-      icon: FaClipboardList, 
-      path: '/meal-plans', 
-      label: 'Meal Plans',
-      authRequired: false 
-    },
-    { 
+    // { 
+    //   icon: FaUsers, 
+    //   path: '/community', 
+    //   label: 'Community',
+    //   authRequired: true // Require authentication for community
+    // },
+    // { 
+    //   icon: FaClipboardList, 
+    //   path: '/meal-plans', 
+    //   label: 'Meal Plans',
+    //   authRequired: false 
+    // },
+    
+      { 
       icon: FaHeart, 
       path: '/favorites', 
       label: 'Favorites',
       authRequired: false 
     },
     { 
+      icon: FaComments, 
+      path: '/CommunityForum', 
+      label: 'Community Forum',
+      authRequired: true 
+   },
+     { 
+      icon: FaCalculator, 
+      path: '/calorie-calculator', 
+      label: 'Calorie Calculator',
+      authRequired: false 
+    },
+     { 
       icon: FaCog, 
       path: '/settings', 
       label: 'Settings',

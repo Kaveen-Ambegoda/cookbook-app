@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.0.15",
+    "jquery": "^3.7.1",
     "lucide-react": "^0.483.0",
     "next": "15.2.3",
     "react": "^19.0.0",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/jquery": "^3.5.32",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
